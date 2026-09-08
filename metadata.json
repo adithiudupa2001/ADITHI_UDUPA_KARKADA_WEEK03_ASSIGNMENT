@@ -1,0 +1,6 @@
+{
+  "name": "Paws & Home SG",
+  "description": "Singapore Stray Adoption & Aftercare platform for shelter visits, pet adoption matching, and community medical support.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
