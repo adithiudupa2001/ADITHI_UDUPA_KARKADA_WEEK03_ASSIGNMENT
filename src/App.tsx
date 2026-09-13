@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Header } from './components/Header';
 import { AdoptScreen } from './components/AdoptScreen';
 import { EnquiryScreen } from './components/EnquiryScreen';
-import { SupportScreen } from './components/SupportScreen';
 import { Footer } from './components/Footer';
 import { ANIMALS } from './data';
 import { ActionType, Animal, ScreenType } from './types';
@@ -26,6 +25,20 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col justify-between bg-[#FAF7F2] text-warmgray-800 font-sans selection:bg-orange-100 selection:text-terracotta-600 antialiased">
+      {/* Visible Student Project Notice Banner near top of screen */}
+      <aside
+        id="student-project-disclaimer-banner"
+        aria-label="Student project notice"
+        className="bg-amber-100 border-b border-amber-200/90 text-amber-950 px-4 py-2 text-xs sm:text-sm text-center font-semibold"
+      >
+        <div className="max-w-7xl mx-auto flex items-center justify-center gap-2">
+          <span>🎓</span>
+          <span>
+            A student project for MGMT 6110 at Singapore Management University. Paws &amp; Home SG is not a real organisation and the animals shown are examples.
+          </span>
+        </div>
+      </aside>
+
       {/* Sticky Global Navigation */}
       <Header currentScreen={currentScreen} onNavigate={handleNavigate} />
 
@@ -42,10 +55,6 @@ export default function App() {
             onBack={() => handleNavigate('adopt')}
           />
         )}
-
-        {currentScreen === 'support' && (
-          <SupportScreen onBackToAdopt={() => handleNavigate('adopt')} />
-        )}
       </main>
 
       {/* Global Reassurance Footer */}
@@ -53,3 +62,4 @@ export default function App() {
     </div>
   );
 }
+

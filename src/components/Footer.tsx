@@ -45,16 +45,19 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   className="hover:text-terracotta-600 transition-colors"
                   onClick={() => onNavigate('adopt')}
                 >
-                  Browse 8 Rescues
+                  Browse Rescues
                 </button>
               </li>
               <li>
                 <button
                   type="button"
                   className="hover:text-terracotta-600 transition-colors"
-                  onClick={() => onNavigate('support')}
+                  onClick={() => {
+                    const el = document.getElementById('how-do-i-get-there-panel');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
                 >
-                  Stray Medical Fund
+                  How Do I Get There?
                 </button>
               </li>
               <li>
@@ -82,12 +85,22 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           </div>
         </div>
 
+        {/* Mandatory Student Project and Open Data Disclaimers */}
+        <div className="pt-6 space-y-3 text-xs text-warmgray-600 border-b border-[#F2EDE8] pb-6">
+          <p className="leading-relaxed">
+            Contains information from LTA DataMall Bus Arrival and Bus Routes, and from the data.gov.sg two-hour weather forecast, accessed 13 September 2026, made available under the terms of the Singapore Open Data Licence version 1.0, data.gov.sg/open-data-licence.
+          </p>
+          <p className="leading-relaxed font-medium text-warmgray-700">
+            This is a student project and is not affiliated with, nor endorsed by, the Land Transport Authority or any animal welfare organisation.
+          </p>
+        </div>
+
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-warmgray-500 gap-2 text-center sm:text-left">
-          <p>&copy; {new Date().getFullYear()} Paws &amp; Home SG Society. All rights reserved. Registered in Singapore.</p>
+          <p>&copy; {new Date().getFullYear()} Paws &amp; Home SG. Student project for SMU MGMT 6110.</p>
           <p className="flex items-center gap-2 sm:gap-3">
             <span>Pasir Ris Facility</span>
             <span>•</span>
-            <span>Bedok &amp; Kranji Feeding Circuits</span>
+            <span>Example stray rescue profiles</span>
           </p>
         </div>
       </div>

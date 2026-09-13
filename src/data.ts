@@ -4,7 +4,7 @@ export const SHELTER_INFO: ShelterInfo = {
   name: "Paws & Home SG",
   tagline: "Every Singapore stray deserves a safe porch and a gentle hand.",
   vision: "We bridge the gap between Singapore's back-alley rescues and loving first-time adopters with compassionate shelter care, patient matching, and dedicated lifelong aftercare.",
-  stats: "Over 420 strays rehomed across HDBs and condos since 2021.",
+  stats: "Community stray welfare and adoption matching initiative across Singapore.",
   address: "71 Pasir Ris Farmway 1, Singapore 519344",
   hours: "Sat & Sun: 10:30am - 5:30pm (By appointment)",
   helpline: "+65 6789 2024",

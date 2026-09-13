@@ -1,4 +1,4 @@
-export type ScreenType = 'adopt' | 'enquiry' | 'support';
+export type ScreenType = 'adopt' | 'enquiry';
 export type ActionType = 'visit' | 'adopt';
 
 export interface Animal {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ActionType, Animal } from '../types';
 import { RescueCard } from './RescueCard';
-import { SupportScreen } from './SupportScreen';
+import { ShelterVisitPlanningSection } from './ShelterVisitPlanningSection';
 
 interface AdoptScreenProps {
   animals: Animal[];
@@ -53,7 +53,7 @@ export const AdoptScreen: React.FC<AdoptScreenProps> = ({ animals, onSelectActio
             </div>
             <span className="hidden md:inline text-warmgray-300">•</span>
             <div className="hidden sm:flex items-center gap-1.5 text-warmgray-600">
-              <span className="text-terracotta-500 font-bold">✓</span> 100% Sterilised &amp; Vaccinated
+              <span className="text-terracotta-500 font-bold">✓</span> Sterilised &amp; Vaccinated
             </div>
             <span className="hidden md:inline text-warmgray-300">•</span>
             <div className="hidden sm:flex items-center gap-1.5 text-warmgray-600">
@@ -63,21 +63,26 @@ export const AdoptScreen: React.FC<AdoptScreenProps> = ({ animals, onSelectActio
         </div>
       </section>
 
-      {/* Mobile Only: How adoption works compact card (matches Image 1) */}
-      <div className="block lg:hidden bg-white border border-[#E8E1DA] rounded-2xl p-4 sm:p-5 shadow-xs">
-        <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-2xl bg-orange-100/80 text-terracotta-600 flex items-center justify-center font-bold text-base shrink-0 mt-0.5 shadow-xs">
-            💡
-          </div>
-          <div className="space-y-2">
-            <h3 className="font-bold text-sm text-warmgray-900">How adoption works</h3>
-            <div className="space-y-1.5 text-xs leading-relaxed text-warmgray-600">
-              <p>
-                <strong className="text-warmgray-900 font-bold">1. Schedule a visit:</strong> A friendly, zero-pressure meet-and-greet at our Pasir Ris shelter.
-              </p>
-              <p>
-                <strong className="text-warmgray-900 font-bold">2. Adopt me:</strong> Once approved, your completed adoption is gently hand-delivered to your home with settling guidance.
-              </p>
+      {/* Planning a visit to the shelter: Two live panels directly below hero & above rescues */}
+      <ShelterVisitPlanningSection />
+
+      {/* Mobile Only: How adoption works compact card */}
+      <div className="block lg:hidden space-y-5">
+        <div className="bg-white border border-[#E8E1DA] rounded-2xl p-4 sm:p-5 shadow-xs">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-2xl bg-orange-100/80 text-terracotta-600 flex items-center justify-center font-bold text-base shrink-0 mt-0.5 shadow-xs">
+              💡
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-bold text-sm text-warmgray-900">How adoption works</h3>
+              <div className="space-y-1.5 text-xs leading-relaxed text-warmgray-600">
+                <p>
+                  <strong className="text-warmgray-900 font-bold">1. Schedule a visit:</strong> A friendly, zero-pressure meet-and-greet at our Pasir Ris shelter.
+                </p>
+                <p>
+                  <strong className="text-warmgray-900 font-bold">2. Adopt me:</strong> Once approved, your completed adoption is gently hand-delivered to your home with settling guidance.
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -89,12 +94,15 @@ export const AdoptScreen: React.FC<AdoptScreenProps> = ({ animals, onSelectActio
         <div className="lg:col-span-8 space-y-5 sm:space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#E8E1DA]">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-xl sm:text-2xl font-extrabold text-warmgray-900 tracking-tight">
                   Meet our rescues
                 </h3>
                 <span className="text-xs font-bold text-terracotta-600 bg-terracotta-50 px-3 py-1 rounded-full border border-terracotta-200">
                   {filteredAnimals.length} Available
+                </span>
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">
+                  EXAMPLE DATA
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-warmgray-600 font-medium mt-0.5">
@@ -148,7 +156,7 @@ export const AdoptScreen: React.FC<AdoptScreenProps> = ({ animals, onSelectActio
           </div>
         </div>
 
-        {/* Right Sticky Sidebar on Desktop (matches Image 3) */}
+        {/* Right Sticky Sidebar on Desktop */}
         <aside className="hidden lg:block lg:col-span-4 space-y-6 sticky top-28">
           {/* How It Works Card */}
           <div className="bg-white border border-[#E8E1DA] rounded-3xl p-6 shadow-sm">
@@ -262,7 +270,7 @@ export const AdoptScreen: React.FC<AdoptScreenProps> = ({ animals, onSelectActio
               </p>
             </div>
             <div className="mt-3.5 pt-2.5 sm:pt-3 border-t border-[#E8E1DA]/60 text-[11px] font-bold text-terracotta-600 uppercase tracking-wider">
-              12 Active Feeding Zones
+              Active Feeding Zones
             </div>
           </div>
 
@@ -276,11 +284,11 @@ export const AdoptScreen: React.FC<AdoptScreenProps> = ({ animals, onSelectActio
                 Vaccination &amp; Sterilisation
               </h4>
               <p className="text-xs text-warmgray-600 mt-1.5 sm:mt-2 leading-relaxed">
-                Every single rescue undergoes comprehensive health screenings, 100% vet certification, microchipping, full core vaccinations, parasite clearing, and humane sterilisation.
+                Every single rescue undergoes comprehensive health screenings, vet certification, microchipping, full core vaccinations, parasite clearing, and humane sterilisation.
               </p>
             </div>
             <div className="mt-3.5 pt-2.5 sm:pt-3 border-t border-[#E8E1DA]/60 text-[11px] font-bold text-terracotta-600 uppercase tracking-wider">
-              100% Medically Cleared
+              Medically Cleared
             </div>
           </div>
 
@@ -298,7 +306,7 @@ export const AdoptScreen: React.FC<AdoptScreenProps> = ({ animals, onSelectActio
               </p>
             </div>
             <div className="mt-3.5 pt-2.5 sm:pt-3 border-t border-[#E8E1DA]/60 text-[11px] font-bold text-terracotta-600 uppercase tracking-wider">
-              Zero-Stress Quarantine
+              Care &amp; Quarantine
             </div>
           </div>
         </div>
@@ -329,11 +337,11 @@ export const AdoptScreen: React.FC<AdoptScreenProps> = ({ animals, onSelectActio
                 Dedicated Volunteer Buddy
               </h4>
               <p className="text-xs text-warmgray-600 mt-1.5 sm:mt-2 leading-relaxed">
-                An experienced Singapore dog or cat parent is directly assigned to answer frantic WhatsApp questions, midnight doubts, and feeding questions for your first 60 days.
+                An experienced Singapore dog or cat parent is directly assigned to answer questions, settling-in doubts, and feeding advice during your initial adoption transition.
               </p>
             </div>
             <div className="mt-3.5 pt-2.5 sm:pt-3 border-t border-orange-100/60 flex items-center gap-2 text-xs font-semibold text-warmgray-800">
-              <span className="text-terracotta-500 font-bold">✓</span> 60-Day 1-on-1 Guidance
+              <span className="text-terracotta-500 font-bold">✓</span> 1-on-1 Guidance
             </div>
           </div>
 
@@ -347,11 +355,11 @@ export const AdoptScreen: React.FC<AdoptScreenProps> = ({ animals, onSelectActio
                 Community Helpline
               </h4>
               <p className="text-xs text-warmgray-600 mt-1.5 sm:mt-2 leading-relaxed">
-                7-day guidance on behavioral adjustment, sound sensitivity during thunderstorms, separation anxiety prevention, and HDB pet window grilles installation pointers.
+                Guidance on behavioral adjustment, sound sensitivity during thunderstorms, separation anxiety prevention, and HDB pet window grilles installation pointers.
               </p>
             </div>
             <div className="mt-3.5 pt-2.5 sm:pt-3 border-t border-orange-100/60 flex items-center gap-2 text-xs font-semibold text-warmgray-800">
-              <span className="text-terracotta-500 font-bold">✓</span> 7 Days a Week Support
+              <span className="text-terracotta-500 font-bold">✓</span> Helpline Support
             </div>
           </div>
 
@@ -365,30 +373,16 @@ export const AdoptScreen: React.FC<AdoptScreenProps> = ({ animals, onSelectActio
                 Subsidised Vet Partners
               </h4>
               <p className="text-xs text-warmgray-600 mt-1.5 sm:mt-2 leading-relaxed">
-                Enjoy exclusive discounted annual wellness checkups, booster jabs, dental scalings, and routine preventatives across our 12 trusted veterinary partner clinics islandwide.
+                Enjoy exclusive discounted annual wellness checkups, booster jabs, dental scalings, and routine preventatives across our trusted veterinary partner clinics islandwide.
               </p>
             </div>
             <div className="mt-3.5 pt-2.5 sm:pt-3 border-t border-orange-100/60 flex items-center gap-2 text-xs font-semibold text-warmgray-800">
-              <span className="text-terracotta-500 font-bold">✓</span> 12 Islandwide Clinics
+              <span className="text-terracotta-500 font-bold">✓</span> Islandwide Partner Clinics
             </div>
           </div>
         </div>
       </section>
-
-      {/* Support Medical Funds Section */}
-      <section id="support-medical-funds-section" aria-label="Support Medical Funds">
-        <SupportScreen
-          isEmbedded={true}
-          onBackToAdopt={() => {
-            const el = document.getElementById('animals-grid');
-            if (el) {
-              el.scrollIntoView({ behavior: 'smooth' });
-            } else {
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-          }}
-        />
-      </section>
     </div>
   );
 };
+

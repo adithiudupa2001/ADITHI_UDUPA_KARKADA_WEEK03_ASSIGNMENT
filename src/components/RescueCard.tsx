@@ -22,6 +22,11 @@ export const RescueCard: React.FC<RescueCardProps> = ({ animal, onSelectAction }
             loading="lazy"
             referrerPolicy="no-referrer"
           />
+          <div className="absolute top-3 left-3">
+            <span className="text-[10px] sm:text-[11px] font-extrabold px-2.5 py-0.5 sm:py-1 rounded-full shadow-xs backdrop-blur-md bg-amber-100/95 text-amber-900 border border-amber-300">
+              Example Rescue
+            </span>
+          </div>
           <div className="absolute top-3 right-3 flex flex-col gap-1.5 items-end">
             <span className="badge-soft-green text-[10px] sm:text-[11px] font-extrabold px-2.5 py-0.5 sm:py-1 rounded-full shadow-xs backdrop-blur-md">
               ✓ Vaccinated

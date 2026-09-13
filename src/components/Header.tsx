@@ -26,7 +26,7 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate }) => 
                 Paws &amp; Home SG
               </h1>
               <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-900 tracking-wide">
-                NON-PROFIT
+                STUDENT PROJECT
               </span>
             </div>
             <p className="text-[11px] sm:text-xs text-warmgray-600 font-medium mt-0.5 sm:mt-1">
@@ -41,9 +41,9 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate }) => 
             <span className="text-terracotta-500 text-sm">📍</span>
             <span>Pasir Ris Farmway 1, Singapore</span>
           </div>
-          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-xs font-semibold text-emerald-800 shadow-xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>420+ Rescues Rehomed</span>
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-900 shadow-xs">
+            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+            <span>SMU MGMT 6110</span>
           </div>
         </div>
 
@@ -58,21 +58,8 @@ export const Header: React.FC<HeaderProps> = ({ currentScreen, onNavigate }) => 
                 : 'text-warmgray-800 hover:text-warmgray-900 sm:bg-white sm:border sm:border-[#D6CBC0]'
             }`}
           >
-            <span className="sm:hidden">Adopt</span>
+            <span className="sm:hidden">Rescues</span>
             <span className="hidden sm:inline">Meet Rescues</span>
-          </button>
-
-          <button
-            id="nav-btn-support"
-            onClick={() => onNavigate('support')}
-            className={`px-3.5 sm:px-5 py-1.5 sm:py-2.5 rounded-full sm:rounded-xl text-xs sm:text-sm font-semibold transition-all ${
-              currentScreen === 'support'
-                ? 'bg-terracotta-500 text-white font-bold shadow-sm hover:bg-terracotta-600'
-                : 'text-warmgray-800 hover:text-warmgray-900 sm:bg-white sm:border sm:border-[#D6CBC0] sm:hover:border-terracotta-400 sm:hover:text-terracotta-600 shadow-xs'
-            }`}
-          >
-            <span className="sm:hidden">Support Us</span>
-            <span className="hidden sm:inline">Support Medical Fund</span>
           </button>
         </nav>
       </div>
