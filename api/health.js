@@ -1,5 +1,3 @@
-import { getRouteIndexStatus } from './routes-to-shelter.js';
-
 export default async function handler(req, res) {
   const accountKey = process.env.LTA_ACCOUNT_KEY;
   const keyConfigured = Boolean(accountKey && accountKey.trim().length > 0);
@@ -37,8 +35,6 @@ export default async function handler(req, res) {
     busAnswered = false;
   }
 
-  const routeStatus = getRouteIndexStatus();
-
   return res.status(200).json({
     keyConfigured,
     weather: {
@@ -48,10 +44,6 @@ export default async function handler(req, res) {
     bus: {
       status: busStatus,
       answered: busAnswered
-    },
-    routeIndex: {
-      loaded: routeStatus.loaded,
-      rows: routeStatus.rows
     }
   });
 }

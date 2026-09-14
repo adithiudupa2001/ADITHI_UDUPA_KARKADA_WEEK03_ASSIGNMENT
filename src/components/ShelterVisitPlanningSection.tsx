@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { CloudSun, Search, AlertCircle, RefreshCw, Compass, Umbrella, Sun } from 'lucide-react';
 
 interface DirectService {
+  type?: 'direct';
   ServiceNo: string;
   stopsAway: number;
   distanceKm: number;
@@ -9,10 +10,40 @@ interface DirectService {
   nextBuses?: number[];
 }
 
+interface OneChangeLeg1 {
+  serviceNo: string;
+  stops: number;
+  distanceKm: number;
+  nextBuses?: number[];
+}
+
+interface OneChangeInterchange {
+  code: string;
+  description?: string;
+  roadName?: string;
+}
+
+interface OneChangeLeg2 {
+  serviceNo: string;
+  stops: number;
+  distanceKm: number;
+}
+
+interface OneChangeOption {
+  type: 'one_change';
+  totalStops: number;
+  leg1: OneChangeLeg1;
+  interchange: OneChangeInterchange;
+  leg2: OneChangeLeg2;
+}
+
 interface RouteSearchResponse {
   from: string;
   destination: string;
-  services: DirectService[];
+  type?: 'direct' | 'one_change' | 'none';
+  services?: DirectService[];
+  directServices?: DirectService[];
+  oneChangeServices?: OneChangeOption[];
   message?: string;
   error?: string;
 }
@@ -125,6 +156,37 @@ export const ShelterVisitPlanningSection: React.FC = () => {
     }
     return `next buses in ${formatted[0]} and ${formatted[1]}`;
   };
+
+  // Sentence formatter for one-change journeys:
+  // "Take 34 for 9 stops to Tampines Interchange (75009), then 3 for 12 stops to Pasir Ris Interchange. 21 stops in total. Next 34 in 6 min."
+  const formatOneChangeSentence = (opt: OneChangeOption): string => {
+    const leg1StopText = `${opt.leg1.stops} ${opt.leg1.stops === 1 ? 'stop' : 'stops'}`;
+    const leg2StopText = `${opt.leg2.stops} ${opt.leg2.stops === 1 ? 'stop' : 'stops'}`;
+    const totalStopText = `${opt.totalStops} ${opt.totalStops === 1 ? 'stop' : 'stops'}`;
+
+    const interchangeText = opt.interchange.description && opt.interchange.description.trim().length > 0
+      ? `${opt.interchange.description.trim()} (${opt.interchange.code})`
+      : opt.interchange.code;
+
+    let arrivalSentence = `No ${opt.leg1.serviceNo} running currently.`;
+    if (opt.leg1.nextBuses && opt.leg1.nextBuses.length > 0) {
+      const firstBus = opt.leg1.nextBuses[0];
+      if (firstBus < 1) {
+        arrivalSentence = `Next ${opt.leg1.serviceNo} arriving.`;
+      } else {
+        arrivalSentence = `Next ${opt.leg1.serviceNo} in ${firstBus} min.`;
+      }
+    }
+
+    return `Take ${opt.leg1.serviceNo} for ${leg1StopText} to ${interchangeText}, then ${opt.leg2.serviceNo} for ${leg2StopText} to Pasir Ris Interchange. ${totalStopText} in total. ${arrivalSentence}`;
+  };
+
+  // Determine which results exist
+  const directList = routeResult?.directServices || (routeResult?.type === 'direct' ? routeResult.services : []) || [];
+  const oneChangeList = routeResult?.oneChangeServices || [];
+  const hasDirect = directList.length > 0;
+  const hasOneChange = !hasDirect && oneChangeList.length > 0;
+  const hasNeither = routeResult && !hasDirect && !hasOneChange;
 
   return (
     <section
@@ -248,7 +310,7 @@ export const ShelterVisitPlanningSection: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Compass className="w-6 h-6 text-terracotta-600 shrink-0" />
                 <span className="text-xs font-bold uppercase tracking-wider text-warmgray-500">
-                  Direct Bus Finder
+                  BUS ROUTE FINDER
                 </span>
               </div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
@@ -294,7 +356,7 @@ export const ShelterVisitPlanningSection: React.FC = () => {
               </p>
             </form>
 
-            {/* Clear loading state explaining the 10 to 20 seconds initial load */}
+            {/* Clear loading state explaining the up to a minute initial load and instant later searches */}
             {routesLoading && (
               <div
                 id="routes-loading-state"
@@ -305,7 +367,7 @@ export const ShelterVisitPlanningSection: React.FC = () => {
                   Loading route index from LTA DataMall...
                 </p>
                 <p className="text-amber-800 leading-relaxed text-xs">
-                  The first request may take 10 to 20 seconds while the route data loads.
+                  The first search may take up to a minute while route data loads, and later searches are instant.
                 </p>
               </div>
             )}
@@ -318,33 +380,73 @@ export const ShelterVisitPlanningSection: React.FC = () => {
               </div>
             )}
 
-            {/* Results below, one line per service, easy to read at a glance */}
+            {/* Results flow:
+                1) Direct buses under "Direct buses"
+                2) If none: "No direct bus — here are journeys with one change" + sentence options + disclaimer
+                3) If neither: "No bus journey to Pasir Ris Interchange with one change or fewer was found from that stop." */}
             {routeResult && !routesLoading && (
-              <div id="route-results-container" className="space-y-3 pt-2">
-                {routeResult.services.length === 0 ? (
-                  /* Empty result message kept exactly as it is */
-                  <div className="p-4 rounded-2xl bg-warmgray-50 border border-warmgray-200 text-xs sm:text-sm text-warmgray-700 leading-relaxed">
-                    <p className="font-medium">
-                      No direct bus from that stop to Pasir Ris Interchange. You would need to change buses, and this page cannot plan that.
-                    </p>
-                  </div>
-                ) : (
+              <div id="route-results-container" className="space-y-4 pt-2">
+                {hasDirect && (
                   <div className="space-y-2">
                     <div className="text-xs font-bold text-warmgray-500 uppercase tracking-wider pb-1">
-                      Direct Services to Pasir Ris Interchange (77009)
+                      Direct buses
                     </div>
-                    {routeResult.services.map((svc) => (
+                    {directList.map((svc) => (
                       <div
                         key={svc.ServiceNo}
                         id={`direct-service-${svc.ServiceNo}`}
                         className="p-3.5 sm:p-4 rounded-2xl bg-[#FAF8F5] border border-[#EFE8E0] hover:border-terracotta-300 transition-colors"
                       >
-                        {/* One line per service, easy to read at a glance */}
                         <p className="text-sm sm:text-base font-semibold text-warmgray-900 leading-relaxed">
                           Service {svc.ServiceNo} &mdash; {svc.stopsAway} stops, {svc.distanceKm} km &mdash; {formatRouteNextBuses(svc.nextBuses)} &mdash; last bus {svc.lastBus}
                         </p>
                       </div>
                     ))}
+                  </div>
+                )}
+
+                {hasOneChange && (
+                  <div className="space-y-3">
+                    <div className="text-sm font-bold text-warmgray-800">
+                      No direct bus &mdash; here are journeys with one change
+                    </div>
+                    <div className="space-y-2.5">
+                      {oneChangeList.map((opt, idx) => (
+                        <div
+                          key={`one-change-${opt.leg1.serviceNo}-${opt.interchange.code}-${opt.leg2.serviceNo}-${idx}`}
+                          id={`one-change-journey-${idx}`}
+                          className="p-3.5 sm:p-4 rounded-2xl bg-[#FAF8F5] border border-[#EFE8E0] hover:border-terracotta-300 transition-colors"
+                        >
+                          <p className="text-sm sm:text-base font-semibold text-warmgray-900 leading-relaxed">
+                            {formatOneChangeSentence(opt)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Disclaimer directly beneath one-change results, always visible, never behind a toggle */}
+                    <div
+                      id="one-change-disclaimer"
+                      className="p-4 rounded-2xl bg-[#FAF8F5] border border-[#E8E1DA] text-xs text-warmgray-600 space-y-1.5 leading-relaxed"
+                    >
+                      <p>
+                        These journeys change buses at the same stop only &mdash; a shorter route may exist if you are willing to walk to a nearby stop.
+                      </p>
+                      <p>
+                        Stop counts come from LTA route data. This page does not estimate journey time and cannot tell you whether you will make the connection.
+                      </p>
+                      <p className="font-semibold text-warmgray-700">
+                        Buses only. The MRT may well be faster.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {hasNeither && (
+                  <div className="p-4 rounded-2xl bg-warmgray-50 border border-warmgray-200 text-xs sm:text-sm text-warmgray-700 leading-relaxed">
+                    <p className="font-medium">
+                      No bus journey to Pasir Ris Interchange with one change or fewer was found from that stop.
+                    </p>
                   </div>
                 )}
               </div>
