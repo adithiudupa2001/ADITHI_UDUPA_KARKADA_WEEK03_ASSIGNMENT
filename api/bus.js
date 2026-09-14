@@ -38,8 +38,17 @@ export default async function handler(req, res) {
           const arrivalTime = new Date(estArrival).getTime();
           if (!isNaN(arrivalTime)) {
             const diffMs = arrivalTime - now;
-            const mins = Math.max(0, Math.floor(diffMs / 60000));
-            minutesList.push(mins);
+            // If more than 1 minute in the past, bus has gone: omit it entirely
+            if (diffMs < -60000) {
+              continue;
+            }
+            // Between 1 minute in past and 1 minute in future: Arriving (0)
+            if (diffMs < 60000) {
+              minutesList.push(0);
+            } else {
+              // Whole number of minutes, rounded down
+              minutesList.push(Math.floor(diffMs / 60000));
+            }
           }
         }
       }

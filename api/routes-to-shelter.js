@@ -222,6 +222,11 @@ export default async function handler(req, res) {
   matchingServices.sort((a, b) => a.ServiceNo.localeCompare(b.ServiceNo, undefined, { numeric: true }));
 
   // Helper to fetch live arrival minutes for services at the fromStop
+  // FIX 4: Never clamp negative numbers to zero.
+  // - If EstimatedArrival is more than 1 minute in the past, that bus has gone. OMIT it entirely.
+  // - Between 1 minute in the past and 1 minute in the future, show "Arriving" (0 min).
+  // - Otherwise show the whole number of minutes, rounded down.
+  // - If every bus for a service has gone, treat that service as having no buses.
   const fetchLiveArrivalsAtOrigin = async () => {
     const arrivalsByService = new Map();
     try {
@@ -248,8 +253,17 @@ export default async function handler(req, res) {
               const arrTime = new Date(estArrival).getTime();
               if (!isNaN(arrTime)) {
                 const diffMs = arrTime - now;
-                const mins = Math.max(0, Math.floor(diffMs / 60000));
-                minsList.push(mins);
+                // If more than 1 minute in the past, that bus has gone: omit it entirely
+                if (diffMs < -60000) {
+                  continue;
+                }
+                // Between 1 minute in the past and 1 minute in the future: show "Arriving" (0)
+                if (diffMs < 60000) {
+                  minsList.push(0);
+                } else {
+                  // Whole number of minutes, rounded down
+                  minsList.push(Math.floor(diffMs / 60000));
+                }
               }
             }
           }
@@ -263,13 +277,14 @@ export default async function handler(req, res) {
   };
 
   // If direct buses found, attach arrival minutes and return
+  // FIX 1: Match LTA refresh rate (Cache-Control: s-maxage=20, stale-while-revalidate=40)
   if (matchingServices.length > 0) {
     const arrivalsByService = await fetchLiveArrivalsAtOrigin();
     for (const service of matchingServices) {
       service.nextBuses = arrivalsByService.get(service.ServiceNo) || [];
     }
 
-    res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=172800');
+    res.setHeader('Cache-Control', 's-maxage=20, stale-while-revalidate=40');
     return res.status(200).json({
       from: fromStop,
       destination: destinationStop,
@@ -282,7 +297,7 @@ export default async function handler(req, res) {
 
   // 2. ONE-CHANGE SEARCH (run only when the direct search returns nothing)
   // a. REACHABLE: for every ServiceNo+Direction calling at fromStop, every stop with a HIGHER StopSequence
-  const reachableMap = new Map(); // interchangeStop -> Array<{ serviceNo, stops, distanceKm }>
+  const reachableMap = new Map(); // interchangeStop -> Array<{ ServiceNo, stops, distanceKm }>
 
   for (const [routeKey, stopsMap] of routes.entries()) {
     if (stopsMap.has(fromStop)) {
@@ -301,7 +316,7 @@ export default async function handler(req, res) {
             reachableMap.set(stopCode, []);
           }
           reachableMap.get(stopCode).push({
-            serviceNo,
+            ServiceNo: serviceNo,
             stops: stopsCount,
             distanceKm: distKm
           });
@@ -311,7 +326,7 @@ export default async function handler(req, res) {
   }
 
   // b. FEEDERS: for every ServiceNo+Direction calling at 77009, every stop with a LOWER StopSequence
-  const feederMap = new Map(); // interchangeStop -> Array<{ serviceNo, stops, distanceKm }>
+  const feederMap = new Map(); // interchangeStop -> Array<{ ServiceNo, stops, distanceKm }>
 
   for (const [routeKey, stopsMap] of routes.entries()) {
     if (stopsMap.has(destinationStop)) {
@@ -330,7 +345,7 @@ export default async function handler(req, res) {
             feederMap.set(stopCode, []);
           }
           feederMap.get(stopCode).push({
-            serviceNo,
+            ServiceNo: serviceNo,
             stops: stopsCount,
             distanceKm: distKm
           });
@@ -341,8 +356,8 @@ export default async function handler(req, res) {
 
   // c. Any stop in BOTH is a valid interchange.
   // Exclude options where both legs use the same ServiceNo.
-  // d. Rank by total stops, lowest first. Keep only the best interchange per pair of services.
-  const bestByServicePair = new Map();
+  // Collect all valid combinations.
+  const allCandidateJourneys = [];
 
   for (const [interchangeCode, leg1List] of reachableMap.entries()) {
     if (!feederMap.has(interchangeCode)) continue;
@@ -350,33 +365,27 @@ export default async function handler(req, res) {
 
     for (const leg1 of leg1List) {
       for (const leg2 of leg2List) {
-        if (leg1.serviceNo === leg2.serviceNo) continue; // Exclude same ServiceNo
+        if (leg1.ServiceNo === leg2.ServiceNo) continue; // Exclude same ServiceNo
 
         const totalStops = leg1.stops + leg2.stops;
         const totalDistance = Math.round((leg1.distanceKm + leg2.distanceKm) * 10) / 10;
-        const pairKey = `${leg1.serviceNo}__${leg2.serviceNo}`;
 
-        const candidate = {
-          leg1Service: leg1.serviceNo,
+        allCandidateJourneys.push({
+          leg1Service: leg1.ServiceNo,
           leg1Stops: leg1.stops,
           leg1DistanceKm: leg1.distanceKm,
           interchangeStop: interchangeCode,
-          leg2Service: leg2.serviceNo,
+          leg2Service: leg2.ServiceNo,
           leg2Stops: leg2.stops,
           leg2DistanceKm: leg2.distanceKm,
           totalStops,
           totalDistance
-        };
-
-        const existing = bestByServicePair.get(pairKey);
-        if (!existing || candidate.totalStops < existing.totalStops || (candidate.totalStops === existing.totalStops && candidate.totalDistance < existing.totalDistance)) {
-          bestByServicePair.set(pairKey, candidate);
-        }
+        });
       }
     }
   }
 
-  const allCandidateJourneys = Array.from(bestByServicePair.values());
+  // Rank by total stops, lowest first. Ties broken by total distance.
   allCandidateJourneys.sort((a, b) => {
     if (a.totalStops !== b.totalStops) {
       return a.totalStops - b.totalStops;
@@ -384,12 +393,33 @@ export default async function handler(req, res) {
     return a.totalDistance - b.totalDistance;
   });
 
-  // e. Return at most 3 options, each marked with type "one_change".
-  const topOneChangeJourneys = allCandidateJourneys.slice(0, 3);
+  // FIX 3: Return at most one option per INTERCHANGE STOP, and at most one per LEG-TWO SERVICE.
+  // If after that fewer than three genuinely different journeys exist, return fewer.
+  const seenInterchangeStops = new Set();
+  const seenLeg2Services = new Set();
+  const topOneChangeJourneys = [];
+
+  for (const candidate of allCandidateJourneys) {
+    if (seenInterchangeStops.has(candidate.interchangeStop)) {
+      continue;
+    }
+    if (seenLeg2Services.has(candidate.leg2Service)) {
+      continue;
+    }
+
+    seenInterchangeStops.add(candidate.interchangeStop);
+    seenLeg2Services.add(candidate.leg2Service);
+    topOneChangeJourneys.push(candidate);
+
+    if (topOneChangeJourneys.length === 3) {
+      break;
+    }
+  }
 
   if (topOneChangeJourneys.length > 0) {
     const arrivalsByService = await fetchLiveArrivalsAtOrigin();
 
+    // Consistency fix: use ServiceNo in both direct and one-change objects
     const formattedOneChange = topOneChangeJourneys.map((item) => {
       const stopInfo = stops.get(item.interchangeStop);
       // NEVER invent or guess a stop name. If not in dataset, description is empty.
@@ -400,7 +430,7 @@ export default async function handler(req, res) {
         type: 'one_change',
         totalStops: item.totalStops,
         leg1: {
-          serviceNo: item.leg1Service,
+          ServiceNo: item.leg1Service,
           stops: item.leg1Stops,
           distanceKm: item.leg1DistanceKm,
           nextBuses: arrivalsByService.get(item.leg1Service) || []
@@ -411,14 +441,15 @@ export default async function handler(req, res) {
           roadName: road
         },
         leg2: {
-          serviceNo: item.leg2Service,
+          ServiceNo: item.leg2Service,
           stops: item.leg2Stops,
           distanceKm: item.leg2DistanceKm
         }
       };
     });
 
-    res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=172800');
+    // FIX 1: Cache-Control: s-maxage=20, stale-while-revalidate=40
+    res.setHeader('Cache-Control', 's-maxage=20, stale-while-revalidate=40');
     return res.status(200).json({
       from: fromStop,
       destination: destinationStop,
@@ -431,7 +462,8 @@ export default async function handler(req, res) {
   }
 
   // If neither direct nor one-change exists:
-  res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=172800');
+  // FIX 1: Cache-Control: s-maxage=20, stale-while-revalidate=40
+  res.setHeader('Cache-Control', 's-maxage=20, stale-while-revalidate=40');
   return res.status(200).json({
     from: fromStop,
     destination: destinationStop,

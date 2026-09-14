@@ -11,7 +11,7 @@ interface DirectService {
 }
 
 interface OneChangeLeg1 {
-  serviceNo: string;
+  ServiceNo: string;
   stops: number;
   distanceKm: number;
   nextBuses?: number[];
@@ -24,7 +24,7 @@ interface OneChangeInterchange {
 }
 
 interface OneChangeLeg2 {
-  serviceNo: string;
+  ServiceNo: string;
   stops: number;
   distanceKm: number;
 }
@@ -146,13 +146,21 @@ export const ShelterVisitPlanningSection: React.FC = () => {
     return `Forecast for ${withPeriod}`;
   };
 
+  // Formatting live bus arrivals:
+  // - 0 means arriving
+  // - > 0 means minutes
+  // - empty means no buses running currently
   const formatRouteNextBuses = (nextBuses?: number[]) => {
     if (!nextBuses || nextBuses.length === 0) {
       return 'no buses running currently';
     }
-    const formatted = nextBuses.map((m) => (m < 1 ? 'Arriving' : `${m} min`));
+
+    const formatted = nextBuses.map((m) => (m < 1 ? 'arriving' : `${m} min`));
     if (formatted.length === 1) {
-      return `next bus in ${formatted[0]}`;
+      return formatted[0] === 'arriving' ? 'next bus arriving' : `next bus in ${formatted[0]}`;
+    }
+    if (formatted[0] === 'arriving') {
+      return `next bus arriving and another in ${formatted[1]}`;
     }
     return `next buses in ${formatted[0]} and ${formatted[1]}`;
   };
@@ -168,17 +176,17 @@ export const ShelterVisitPlanningSection: React.FC = () => {
       ? `${opt.interchange.description.trim()} (${opt.interchange.code})`
       : opt.interchange.code;
 
-    let arrivalSentence = `No ${opt.leg1.serviceNo} running currently.`;
+    let arrivalSentence = `No ${opt.leg1.ServiceNo} running currently.`;
     if (opt.leg1.nextBuses && opt.leg1.nextBuses.length > 0) {
       const firstBus = opt.leg1.nextBuses[0];
       if (firstBus < 1) {
-        arrivalSentence = `Next ${opt.leg1.serviceNo} arriving.`;
+        arrivalSentence = `Next ${opt.leg1.ServiceNo} arriving.`;
       } else {
-        arrivalSentence = `Next ${opt.leg1.serviceNo} in ${firstBus} min.`;
+        arrivalSentence = `Next ${opt.leg1.ServiceNo} in ${firstBus} min.`;
       }
     }
 
-    return `Take ${opt.leg1.serviceNo} for ${leg1StopText} to ${interchangeText}, then ${opt.leg2.serviceNo} for ${leg2StopText} to Pasir Ris Interchange. ${totalStopText} in total. ${arrivalSentence}`;
+    return `Take ${opt.leg1.ServiceNo} for ${leg1StopText} to ${interchangeText}, then ${opt.leg2.ServiceNo} for ${leg2StopText} to Pasir Ris Interchange. ${totalStopText} in total. ${arrivalSentence}`;
   };
 
   // Determine which results exist
@@ -372,7 +380,6 @@ export const ShelterVisitPlanningSection: React.FC = () => {
               </div>
             )}
 
-            {/* Error state */}
             {routesError && (
               <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs sm:text-sm text-rose-800 flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
@@ -382,7 +389,7 @@ export const ShelterVisitPlanningSection: React.FC = () => {
 
             {/* Results flow:
                 1) Direct buses under "Direct buses"
-                2) If none: "No direct bus — here are journeys with one change" + sentence options + disclaimer
+                2) If none: "No direct bus — here are journeys with one change" + sentence options + limits text
                 3) If neither: "No bus journey to Pasir Ris Interchange with one change or fewer was found from that stop." */}
             {routeResult && !routesLoading && (
               <div id="route-results-container" className="space-y-4 pt-2">
@@ -413,7 +420,7 @@ export const ShelterVisitPlanningSection: React.FC = () => {
                     <div className="space-y-2.5">
                       {oneChangeList.map((opt, idx) => (
                         <div
-                          key={`one-change-${opt.leg1.serviceNo}-${opt.interchange.code}-${opt.leg2.serviceNo}-${idx}`}
+                          key={`one-change-${opt.leg1.ServiceNo}-${opt.interchange.code}-${opt.leg2.ServiceNo}-${idx}`}
                           id={`one-change-journey-${idx}`}
                           className="p-3.5 sm:p-4 rounded-2xl bg-[#FAF8F5] border border-[#EFE8E0] hover:border-terracotta-300 transition-colors"
                         >
@@ -424,10 +431,10 @@ export const ShelterVisitPlanningSection: React.FC = () => {
                       ))}
                     </div>
 
-                    {/* Disclaimer directly beneath one-change results, always visible, never behind a toggle */}
+                    {/* FIX 2: Limits text beneath one-change results, always visible, never behind a toggle, normal readable text */}
                     <div
-                      id="one-change-disclaimer"
-                      className="p-4 rounded-2xl bg-[#FAF8F5] border border-[#E8E1DA] text-xs text-warmgray-600 space-y-1.5 leading-relaxed"
+                      id="one-change-limits-text"
+                      className="p-5 rounded-2xl bg-[#F7F4EF] border border-[#DDD2C6] text-sm sm:text-base text-warmgray-800 space-y-2.5 leading-relaxed"
                     >
                       <p>
                         These journeys change buses at the same stop only &mdash; a shorter route may exist if you are willing to walk to a nearby stop.
@@ -435,7 +442,7 @@ export const ShelterVisitPlanningSection: React.FC = () => {
                       <p>
                         Stop counts come from LTA route data. This page does not estimate journey time and cannot tell you whether you will make the connection.
                       </p>
-                      <p className="font-semibold text-warmgray-700">
+                      <p className="font-bold text-warmgray-900">
                         Buses only. The MRT may well be faster.
                       </p>
                     </div>
