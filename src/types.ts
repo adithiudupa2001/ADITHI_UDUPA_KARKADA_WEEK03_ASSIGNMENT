@@ -27,11 +27,14 @@ export interface ShelterInfo {
 }
 
 export interface EnquirySubmission {
-  animal: Animal;
+  animal?: Animal | null;
   actionType: ActionType;
   fullName: string;
   email: string;
   phone: string;
+  whichRescue?: string;
+  visitDate?: string;
+  timeSlot?: string;
   message: string;
   submittedAt: string;
 }

@@ -1,8 +1,8 @@
 import React from 'react';
-import { ScreenType } from '../types';
+import { ActionType, ScreenType } from '../types';
 
 interface FooterProps {
-  onNavigate: (screen: ScreenType) => void;
+  onNavigate: (screen: ScreenType | ActionType) => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
@@ -51,6 +51,24 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
               <li>
                 <button
                   type="button"
+                  className="hover:text-amber-800 transition-colors font-medium"
+                  onClick={() => onNavigate('visit')}
+                >
+                  Book a Shelter Visit
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  className="hover:text-terracotta-600 transition-colors font-medium"
+                  onClick={() => onNavigate('enquiry')}
+                >
+                  Adoption Enquiry
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
                   className="hover:text-terracotta-600 transition-colors"
                   onClick={() => {
                     const el = document.getElementById('how-do-i-get-there-panel');
@@ -58,15 +76,6 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
                   }}
                 >
                   How Do I Get There?
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  className="hover:text-terracotta-600 transition-colors"
-                  onClick={() => onNavigate('adopt')}
-                >
-                  HDB Mesh Guidelines
                 </button>
               </li>
             </ul>

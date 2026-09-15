@@ -95,7 +95,7 @@ export const AdoptScreen: React.FC<AdoptScreenProps> = ({ animals, onSelectActio
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#E8E1DA]">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-xl sm:text-2xl font-extrabold text-warmgray-900 tracking-tight">
+                <h3 id="rescues-heading" className="text-xl sm:text-2xl font-extrabold text-warmgray-900 tracking-tight">
                   Meet our rescues
                 </h3>
                 <span className="text-xs font-bold text-terracotta-600 bg-terracotta-50 px-3 py-1 rounded-full border border-terracotta-200">
