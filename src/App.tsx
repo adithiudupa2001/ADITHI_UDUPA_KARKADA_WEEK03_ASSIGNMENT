@@ -3,6 +3,7 @@ import { Header } from './components/Header';
 import { AdoptScreen } from './components/AdoptScreen';
 import { Footer } from './components/Footer';
 import { EnquiryModal } from './components/EnquiryModal';
+import DisqusComments from './components/DisqusComments'; 
 import { ANIMALS } from './data';
 import { ActionType, Animal } from './types';
 
@@ -54,6 +55,9 @@ export default function App() {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 w-full flex-grow">
           <AdoptScreen animals={ANIMALS} onSelectAction={handleSelectAction} />
         </main>
+
+                {/* User feedback — Disqus comment thread */}
+        <DisqusComments />
 
         {/* Global Reassurance Footer */}
         <Footer onNavigate={handleFooterNavigate} />
