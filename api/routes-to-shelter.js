@@ -139,7 +139,7 @@ export default async function handler(req, res) {
   // BEFORE any LTA fetch, check that key exists and is non-empty
   if (!accountKey || accountKey.trim() === '') {
     return res.status(503).json({
-      error: 'LTA_ACCOUNT_KEY is not set. Add it in Vercel and redeploy.'
+      error: 'Live bus service information is temporarily unavailable. Please try again in a few moments.'
     });
   }
 
@@ -162,12 +162,23 @@ export default async function handler(req, res) {
     routes = loadedData.routeIndex;
     stops = loadedData.busStopIndex;
   } catch (err) {
-    const errorMsg = err instanceof Error ? err.message : 'Failed to load route data';
     return res.status(502).json({
-      error: errorMsg,
+      error: 'Live bus service information is temporarily unavailable. Please try again in a few moments.',
       status: 502
     });
   }
+
+  const fromStopInfo = stops.get(fromStop);
+  if (stops && stops.size > 0 && !fromStopInfo) {
+    return res.status(404).json({
+      error: `We couldn't find bus stop ${fromStop}. Check the 5-digit code and try again.`,
+      type: 'invalid_stop',
+      from: fromStop
+    });
+  }
+
+  const fromDescription = fromStopInfo?.Description ? String(fromStopInfo.Description).trim() : '';
+  const fromRoadName = fromStopInfo?.RoadName ? String(fromStopInfo.RoadName).trim() : '';
 
   // 1. DIRECT SEARCH
   // Find all services where fromStop and 77009 appear on the same ServiceNo and Direction,
@@ -287,7 +298,10 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 's-maxage=20, stale-while-revalidate=40');
     return res.status(200).json({
       from: fromStop,
+      fromDescription,
+      fromRoadName,
       destination: destinationStop,
+      destinationDescription: 'Pasir Ris Int',
       type: 'direct',
       services: matchingServices,
       directServices: matchingServices,
@@ -452,7 +466,10 @@ export default async function handler(req, res) {
     res.setHeader('Cache-Control', 's-maxage=20, stale-while-revalidate=40');
     return res.status(200).json({
       from: fromStop,
+      fromDescription,
+      fromRoadName,
       destination: destinationStop,
+      destinationDescription: 'Pasir Ris Int',
       type: 'one_change',
       services: [],
       directServices: [],
@@ -466,7 +483,10 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 's-maxage=20, stale-while-revalidate=40');
   return res.status(200).json({
     from: fromStop,
+    fromDescription,
+    fromRoadName,
     destination: destinationStop,
+    destinationDescription: 'Pasir Ris Int',
     type: 'none',
     services: [],
     directServices: [],
