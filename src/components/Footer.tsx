@@ -102,6 +102,12 @@ export const Footer: React.FC<FooterProps> = ({ onNavigate }) => {
           <p className="leading-relaxed font-medium text-warmgray-700">
             This is a student project and is not affiliated with, nor endorsed by, the Land Transport Authority or any animal welfare organisation.
           </p>
+                    <p className="leading-relaxed">
+            This page uses Microsoft Clarity and Disqus, which use cookies to record how visitors use the site and to host comments. By using this page you agree that we and Microsoft may collect and use this data. See the{' '}
+            <a href="https://www.microsoft.com/privacy/privacystatement" target="_blank" rel="noopener noreferrer" className="underline hover:text-terracotta-600">Microsoft Privacy Statement</a>, the{' '}
+            <a href="https://disqus.com/privacy-policy/" target="_blank" rel="noopener noreferrer" className="underline hover:text-terracotta-600">Disqus privacy policy</a> and the{' '}
+            <a href="https://disqus.com/data-sharing-settings/" target="_blank" rel="noopener noreferrer" className="underline hover:text-terracotta-600">Disqus data sharing settings</a>.
+          </p>
         </div>
 
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-warmgray-500 gap-2 text-center sm:text-left">
