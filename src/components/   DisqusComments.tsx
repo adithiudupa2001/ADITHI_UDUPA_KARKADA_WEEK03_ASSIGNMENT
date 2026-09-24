@@ -6,15 +6,17 @@ const PAGE_ID = "home";
 
 export default function DisqusComments() {
   useEffect(() => {
-    window.disqus_config = function () {
+    const w = window as any;
+
+    w.disqus_config = function (this: any) {
       this.page.url = PAGE_URL;
       this.page.identifier = PAGE_ID;
     };
 
-    // If the script is already on the page (React re-mount), reset instead of re-adding.
+    // Already loaded (React re-mount / StrictMode) — reset instead of re-adding.
     if (document.getElementById("dsq-embed-script")) {
-      if (window.DISQUS) {
-        window.DISQUS.reset({ reload: true, config: window.disqus_config });
+      if (w.DISQUS) {
+        w.DISQUS.reset({ reload: true, config: w.disqus_config });
       }
       return;
     }
