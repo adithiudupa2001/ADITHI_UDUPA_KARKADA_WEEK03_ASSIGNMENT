@@ -180,6 +180,21 @@ export default async function handler(req, res) {
   const fromDescription = fromStopInfo?.Description ? String(fromStopInfo.Description).trim() : '';
   const fromRoadName = fromStopInfo?.RoadName ? String(fromStopInfo.RoadName).trim() : '';
 
+  // If origin is already the destination stop (77009 Pasir Ris Interchange), return without calculating loop journeys
+  if (fromStop === destinationStop) {
+    return res.status(200).json({
+      from: fromStop,
+      fromDescription: fromDescription || 'Pasir Ris Interchange',
+      fromRoadName: fromRoadName || 'Pasir Ris Dr 3',
+      destination: destinationStop,
+      destinationDescription: 'Pasir Ris Interchange',
+      type: 'already_at_destination',
+      directServices: [],
+      oneChangeServices: [],
+      message: "You are already at the shelter's stop (Pasir Ris Interchange). No bus journey is needed."
+    });
+  }
+
   // 1. DIRECT SEARCH
   // Find all services where fromStop and 77009 appear on the same ServiceNo and Direction,
   // AND fromStop's StopSequence is LOWER than 77009's

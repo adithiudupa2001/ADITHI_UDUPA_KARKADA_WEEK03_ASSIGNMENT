@@ -61,7 +61,7 @@ interface RouteSearchResponse {
   fromRoadName?: string;
   destination: string;
   destinationDescription?: string;
-  type?: 'direct' | 'one_change' | 'none' | 'invalid_stop';
+  type?: 'direct' | 'one_change' | 'none' | 'invalid_stop' | 'already_at_destination';
   services?: DirectService[];
   directServices?: DirectService[];
   oneChangeServices?: OneChangeOption[];
@@ -89,6 +89,11 @@ interface SearchErrorDetail {
   searchedCode: string;
   message: string;
 }
+
+// Fixed destination shelter hub
+const DESTINATION_STOP_CODE = '77009';
+const DESTINATION_STOP_NAME = 'Pasir Ris Interchange';
+const DESTINATION_STOP_ROAD = 'Pasir Ris Dr 3';
 
 // Curated Singapore Transit Hubs for instant recognition & nearby geolocation
 const POPULAR_QUICK_STOPS: KnownStop[] = [
@@ -280,6 +285,53 @@ export const ShelterVisitPlanningSection: React.FC = () => {
         searchedCode: '61031',
         message: "We couldn't find bus stop 61031. Check the 5-digit code and try again."
       });
+      return;
+    }
+
+    // Starting stop equals destination stop (77009 Pasir Ris Interchange):
+    // Recognise before requesting any route and show plain-language message
+    if (cleanCode === DESTINATION_STOP_CODE) {
+      setRoutesLoading(false);
+      setIsRefreshing(false);
+      setRoutesError(null);
+      setShowAllRoutes(false);
+
+      const destStopInfo = KNOWN_STOP_NAMES[DESTINATION_STOP_CODE] || {
+        name: DESTINATION_STOP_NAME,
+        road: DESTINATION_STOP_ROAD
+      };
+
+      setRouteResult({
+        from: DESTINATION_STOP_CODE,
+        fromDescription: destStopInfo.name,
+        fromRoadName: destStopInfo.road,
+        destination: DESTINATION_STOP_CODE,
+        destinationDescription: destStopInfo.name,
+        type: 'already_at_destination',
+        directServices: [],
+        oneChangeServices: [],
+        message: "You are already at the shelter's stop (Pasir Ris Interchange). No bus journey is needed."
+      });
+
+      const updateDate = new Date();
+      setLastUpdated(updateDate);
+      setUpdatedTimeText('Updated just now');
+
+      // Save to recent searches (Recognition rather than recall)
+      setRecentStops((prev) => {
+        const next = [cleanCode, ...prev.filter((c) => c !== cleanCode)].slice(0, 4);
+        try {
+          localStorage.setItem('paws_recent_stops', JSON.stringify(next));
+        } catch {
+          // ignore localStorage failure
+        }
+        return next;
+      });
+
+      if (isBackgroundRefresh) {
+        setJustRefreshed(true);
+        setTimeout(() => setJustRefreshed(false), 3000);
+      }
       return;
     }
 
@@ -540,11 +592,16 @@ export const ShelterVisitPlanningSection: React.FC = () => {
   };
 
   // Determine which results exist
-  const directList = routeResult?.directServices || (routeResult?.type === 'direct' ? routeResult.services : []) || [];
-  const oneChangeList = routeResult?.oneChangeServices || [];
+  const isAlreadyAtDestination = routeResult?.from === DESTINATION_STOP_CODE || routeResult?.type === 'already_at_destination';
+  const directList = !isAlreadyAtDestination
+    ? (routeResult?.directServices || (routeResult?.type === 'direct' ? routeResult.services : []) || [])
+    : [];
+  const oneChangeList = !isAlreadyAtDestination
+    ? (routeResult?.oneChangeServices || [])
+    : [];
   const hasDirect = directList.length > 0;
   const hasOneChange = !hasDirect && oneChangeList.length > 0;
-  const hasNeither = routeResult && routeResult.type !== 'invalid_stop' && !hasDirect && !hasOneChange;
+  const hasNeither = routeResult && routeResult.type !== 'invalid_stop' && !isAlreadyAtDestination && !hasDirect && !hasOneChange;
 
   // Heuristic #8: Display only 1 route initially when collapsed
   const displayedDirectList = showAllRoutes ? directList : directList.slice(0, 1);
@@ -1196,16 +1253,38 @@ export const ShelterVisitPlanningSection: React.FC = () => {
 
                   {/* Destination Guidance */}
                   <div className="flex items-center gap-1.5 text-xs text-warmgray-600 font-medium">
-                    <span>Route towards:</span>
+                    <span>{isAlreadyAtDestination ? 'Shelter location:' : 'Route towards:'}</span>
                     <strong className="text-warmgray-900 font-bold flex items-center gap-1">
                       Pasir Ris Interchange (77009)
-                      <ArrowRight className="w-3 h-3 text-terracotta-500 inline" />
+                      {!isAlreadyAtDestination && <ArrowRight className="w-3 h-3 text-terracotta-500 inline" />}
                     </strong>
                     <span className="text-warmgray-400">Shelter Hub</span>
                   </div>
                 </div>
 
-                {/* NO BUSES CURRENTLY OPERATING (e.g. late night) */}
+                {/* Case 0: Already at Destination (Short plain-language message, no journey cards, no transfer routes) */}
+                {isAlreadyAtDestination ? (
+                  <div
+                    id="already-at-destination-card"
+                    className="p-4 sm:p-5 rounded-2xl bg-[#FAF8F5] border border-[#DDD2C6] text-warmgray-900 space-y-2"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                        <CheckCircle2 className="w-4 h-4" />
+                      </div>
+                      <div className="space-y-1 flex-1">
+                        <p className="font-extrabold text-sm sm:text-base text-warmgray-900 leading-snug">
+                          You are already at the shelter's stop
+                        </p>
+                        <p className="text-xs sm:text-sm text-warmgray-700 leading-relaxed">
+                          You are at Pasir Ris Interchange (77009). The adoption shelter is located right here, so no bus journey or transfer route is needed.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* NO BUSES CURRENTLY OPERATING (e.g. late night) */}
                 {isNoBusesRunningCurrently() && (
                   <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs sm:text-sm text-amber-900 flex items-start gap-2.5">
                     <Clock className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
@@ -1381,6 +1460,8 @@ export const ShelterVisitPlanningSection: React.FC = () => {
                       </div>
                     </div>
                   </div>
+                )}
+                  </>
                 )}
               </div>
             )}
