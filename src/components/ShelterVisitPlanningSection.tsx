@@ -79,6 +79,12 @@ interface SearchErrorDetail {
   message: string;
 }
 
+interface StopSuggestion {
+  code: string;
+  name: string;
+  road: string;
+}
+
 // Fixed destination shelter hub
 const DESTINATION_STOP_CODE = '77009';
 const DESTINATION_STOP_NAME = 'Pasir Ris Interchange';
@@ -86,15 +92,59 @@ const DESTINATION_STOP_ROAD = 'Pasir Ris Dr 3';
 
 // Offline fallback dictionary of known Singapore transit stops for instant recognition
 const KNOWN_STOP_NAMES: Record<string, { name: string; road?: string }> = {
+  // Pasir Ris stops
   '77009': { name: 'Pasir Ris Interchange', road: 'Pasir Ris Dr 3' },
   '77031': { name: 'Opposite Pasir Ris Station', road: 'Pasir Ris Ctrl' },
   '77039': { name: 'Pasir Ris Station', road: 'Pasir Ris Ctrl' },
+  '77011': { name: 'Opposite Pasir Ris Swimming Complex', road: 'Pasir Ris Dr 1' },
+  '77019': { name: 'Pasir Ris Swimming Complex', road: 'Pasir Ris Dr 1' },
+  '77089': { name: 'Downtown East', road: 'Pasir Ris Cl' },
+  '77099': { name: 'Opposite Downtown East', road: 'Pasir Ris Dr 3' },
+  '77149': { name: 'Pasir Ris Elias CC', road: 'Pasir Ris Dr 3' },
+  '77159': { name: 'Opposite Pasir Ris Elias CC', road: 'Pasir Ris Dr 3' },
+  '77171': { name: 'Blk 571', road: 'Pasir Ris Dr 1' },
+  '77179': { name: 'Blk 643', road: 'Pasir Ris Dr 1' },
+  '77181': { name: 'Blk 576', road: 'Pasir Ris Dr 1' },
+  '77189': { name: 'Blk 640', road: 'Pasir Ris Dr 1' },
+  '77299': { name: 'Pasir Ris Primary School', road: 'Pasir Ris Dr 6' },
+  '77309': { name: 'Opposite Pasir Ris Primary School', road: 'Pasir Ris Dr 6' },
+  '77319': { name: 'Blk 442', road: 'Pasir Ris Dr 6' },
+  '77329': { name: 'Opposite Blk 442', road: 'Pasir Ris Dr 6' },
+
+  // Anchorvale (Sengkang) stops
+  '67351': { name: 'Anchorvale CC', road: 'Anchorvale Rd' },
+  '67359': { name: 'Opposite Anchorvale CC', road: 'Anchorvale Rd' },
+  '67371': { name: 'Sengkang Sports Complex', road: 'Anchorvale St' },
+  '67379': { name: 'Opposite Sengkang Sports Complex', road: 'Anchorvale St' },
+  '67341': { name: 'Blk 317B', road: 'Anchorvale Rd' },
+  '67349': { name: 'Blk 308A', road: 'Anchorvale Rd' },
+  '67361': { name: 'Blk 326D', road: 'Anchorvale Rd' },
+  '67431': { name: 'Opposite Blk 326D', road: 'Anchorvale Rd' },
+  '67439': { name: 'Before Blk 326D', road: 'Anchorvale Rd' },
+  '67481': { name: 'Farmway Station Exit A', road: 'Anchorvale Rd' },
+
+  // Tampines stops
   '75009': { name: 'Tampines Bus Interchange', road: 'Tampines Ctrl 1' },
+  '76009': { name: 'Tampines Concourse Interchange', road: 'Tampines Concourse' },
+  '75139': { name: 'Tampines Station/Int', road: 'Tampines Ave 4' },
+  '75131': { name: 'Opposite Tampines Station/Int', road: 'Tampines Ave 4' },
+  '75149': { name: 'Tampines Mall', road: 'Tampines Ctrl 5' },
+  '76191': { name: 'Our Tampines Hub', road: 'Tampines Ave 4' },
+
+  // Sengkang & Punggol stops
+  '67009': { name: 'Sengkang Bus Interchange', road: 'Sengkang Sq' },
+  '67409': { name: 'Sengkang Station Exit C', road: 'Compassvale Rd' },
+  '65009': { name: 'Punggol Temporary Interchange', road: 'Punggol Place' },
+  '65011': { name: 'Punggol Station/Waterway Point', road: 'Punggol Central' },
+
+  // Bedok, Loyang, Changi
   '84009': { name: 'Bedok Bus Interchange', road: 'Bedok North Ave 1' },
+  '84039': { name: 'Bedok Station Exit B', road: 'New Upper Changi Rd' },
   '98011': { name: 'Loyang Point', road: 'Loyang Ave' },
   '98019': { name: 'Opposite Loyang Point', road: 'Loyang Ave' },
-  '65009': { name: 'Punggol Temporary Interchange', road: 'Punggol Place' },
-  '67009': { name: 'Sengkang Bus Interchange', road: 'Sengkang Sq' },
+  '95129': { name: 'Changi Airport PTB2', road: 'PTB2 Bus Station' },
+
+  // Central, Orchard & Interchanges
   '04121': { name: 'Opposite The Treasury', road: 'North Bridge Rd' },
   '04111': { name: 'Grand Park City Hall', road: 'Coleman St' },
   '03019': { name: 'Apollo Centre', road: 'Havelock Rd' },
@@ -105,7 +155,48 @@ const KNOWN_STOP_NAMES: Record<string, { name: string; road?: string }> = {
   '59009': { name: 'Yishun Bus Interchange', road: 'Yishun Ave 2' },
   '53009': { name: 'Bishan Bus Interchange', road: 'Bishan Place' },
   '52009': { name: 'Ang Mo Kio Interchange', road: 'Ang Mo Kio Ave 8' },
-  '76009': { name: 'Tampines Concourse Interchange', road: 'Tampines Concourse' }
+  '54009': { name: 'Serangoon Bus Interchange', road: 'Serangoon Ave 2' },
+  '52001': { name: 'Toa Payoh Interchange', road: 'Lor 6 Toa Payoh' },
+  '17009': { name: 'Clementi Bus Interchange', road: 'Clementi Ave 3' },
+  '22009': { name: 'Boon Lay Bus Interchange', road: 'Jurong West Central 3' }
+};
+
+// Fast local fallback search for instant response
+const searchLocalStops = (query: string): StopSuggestion[] => {
+  const clean = query.trim().toLowerCase();
+  if (clean.length < 2) return [];
+
+  const results: (StopSuggestion & { score: number })[] = [];
+  for (const [code, info] of Object.entries(KNOWN_STOP_NAMES)) {
+    const nameLower = (info.name || '').toLowerCase();
+    const roadLower = (info.road || '').toLowerCase();
+    const nameMatches = nameLower.includes(clean);
+    const roadMatches = roadLower.includes(clean);
+
+    if (nameMatches || roadMatches) {
+      let score = 10;
+      if (nameLower === clean) score = 0;
+      else if (code === '77009' && (nameMatches || clean.startsWith('pasir'))) score = 0.5;
+      else if (nameLower.startsWith(clean)) score = 1;
+      else if (nameMatches) score = 2;
+      else if (roadLower.startsWith(clean)) score = 5;
+      else if (roadMatches) score = 6;
+
+      results.push({
+        code,
+        name: info.name,
+        road: info.road || '',
+        score
+      });
+    }
+  }
+
+  results.sort((a, b) => {
+    if (a.score !== b.score) return a.score - b.score;
+    return a.name.localeCompare(b.name);
+  });
+
+  return results.slice(0, 5).map(({ code, name, road }) => ({ code, name, road }));
 };
 
 export const ShelterVisitPlanningSection: React.FC = () => {
@@ -153,6 +244,13 @@ export const ShelterVisitPlanningSection: React.FC = () => {
   // Undo accidental removal of favorite
   const [undoRemoval, setUndoRemoval] = useState<{ code: string; name: string } | null>(null);
   const undoTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Bus Stop Name Search suggestions
+  const [suggestions, setSuggestions] = useState<StopSuggestion[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState<boolean>(false);
+  const [suggestionsQuery, setSuggestionsQuery] = useState<string>('');
+  const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // Helper to get prominent stop name and secondary detail
   const getStopDisplay = (code: string, desc?: string, road?: string): { name: string; roadInfo: string } => {
@@ -380,24 +478,47 @@ export const ShelterVisitPlanningSection: React.FC = () => {
     }
   };
 
+  const handleSelectSuggestion = (suggestion: StopSuggestion) => {
+    setStopCodeInput(suggestion.code);
+    setShowSuggestions(false);
+    setSuggestions([]);
+    performSearch(suggestion.code);
+  };
+
   const handleSearchRoutes = (e: React.FormEvent) => {
     e.preventDefault();
     if (routesLoading || isRefreshing) return;
-    performSearch(stopCodeInput);
+    const clean = stopCodeInput.trim();
+    if (/^\d{5}$/.test(clean)) {
+      setShowSuggestions(false);
+      performSearch(clean);
+    } else if (suggestions.length > 0) {
+      handleSelectSuggestion(suggestions[0]);
+    }
   };
 
-  // Error Prevention: Strict input sanitation (digits only, max 5)
+  // Error Prevention: Support direct 5-digit code or stop name search
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value;
-    const digitsOnly = raw.replace(/\D/g, '').slice(0, 5);
-    setStopCodeInput(digitsOnly);
     if (routesError) setRoutesError(null);
+
+    // If user is typing exclusively digits, limit strictly to 5 digits
+    if (/^\d+$/.test(raw)) {
+      setStopCodeInput(raw.slice(0, 5));
+      setShowSuggestions(false);
+      return;
+    }
+
+    // Otherwise, user is typing a stop or place name: allow up to 45 chars
+    setStopCodeInput(raw.slice(0, 45));
   };
 
   // Clear / Reset action
   const handleClearInput = () => {
     setStopCodeInput('');
     setRoutesError(null);
+    setSuggestions([]);
+    setShowSuggestions(false);
   };
 
   const handleSelectQuickStop = (code: string) => {
@@ -405,6 +526,68 @@ export const ShelterVisitPlanningSection: React.FC = () => {
     setStopCodeInput(code);
     performSearch(code);
   };
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  // Bus Stop Name Search (as user types 2+ non-digit characters)
+  useEffect(() => {
+    const query = stopCodeInput.trim();
+    const isDigitsOnly = /^\d+$/.test(query);
+
+    if (query.length < 2 || isDigitsOnly) {
+      setSuggestions([]);
+      setSuggestionsLoading(false);
+      setSuggestionsQuery('');
+      setShowSuggestions(false);
+      return;
+    }
+
+    let isMounted = true;
+    setSuggestionsLoading(true);
+    setShowSuggestions(true);
+    setSuggestionsQuery(query);
+
+    // Instant local matches for immediate feedback
+    const localMatches = searchLocalStops(query);
+    if (localMatches.length > 0) {
+      setSuggestions(localMatches);
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/routes-to-shelter?search=${encodeURIComponent(query)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            const apiStops = Array.isArray(data?.stops) ? data.stops.slice(0, 5) : [];
+            if (apiStops.length > 0 || localMatches.length === 0) {
+              setSuggestions(apiStops);
+            }
+          }
+        }
+      } catch {
+        // Keep local matches if fetch fails
+      } finally {
+        if (isMounted) {
+          setSuggestionsLoading(false);
+        }
+      }
+    }, 180);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [stopCodeInput]);
 
   // Toggle Favourites with Duplicate Prevention & Undo Capability
   const toggleFavorite = (code: string) => {
@@ -551,21 +734,40 @@ export const ShelterVisitPlanningSection: React.FC = () => {
 
   // Real-time input validation note
   const getInputValidationNote = () => {
-    if (stopCodeInput.length === 0) {
-      return { text: 'Singapore stop codes are 5 digits and leading zeroes count (e.g. 04121).', type: 'info' };
+    const isDigits = /^\d*$/.test(stopCodeInput);
+
+    if (isDigits) {
+      if (stopCodeInput.length === 0) {
+        return { text: 'Singapore stop codes are 5 digits and leading zeroes count (e.g. 04121).', type: 'info' };
+      }
+      if (stopCodeInput.length < 5) {
+        const remaining = 5 - stopCodeInput.length;
+        return {
+          text: `5 digits required — enter ${remaining} more digit${remaining > 1 ? 's' : ''}.`,
+          type: 'warning'
+        };
+      }
+      const known = KNOWN_STOP_NAMES[stopCodeInput];
+      if (known) {
+        return { text: `✓ Ready to search: ${known.name}`, type: 'success' };
+      }
+      return { text: '✓ Valid 5-digit format ready to search', type: 'success' };
     }
-    if (stopCodeInput.length < 5) {
-      const remaining = 5 - stopCodeInput.length;
-      return {
-        text: `5 digits required — enter ${remaining} more digit${remaining > 1 ? 's' : ''}.`,
-        type: 'warning'
-      };
+
+    // Bus stop name search
+    if (stopCodeInput.trim().length < 2) {
+      return { text: 'Type 2 or more characters to search by bus stop name', type: 'info' };
     }
-    const known = KNOWN_STOP_NAMES[stopCodeInput];
-    if (known) {
-      return { text: `✓ Ready to search: ${known.name}`, type: 'success' };
+    if (suggestionsLoading && suggestions.length === 0) {
+      return { text: 'Searching matching bus stops...', type: 'info' };
     }
-    return { text: '✓ Valid 5-digit format ready to search', type: 'success' };
+    if (suggestions.length === 0) {
+      return { text: `No bus stops found matching "${stopCodeInput.trim()}"`, type: 'warning' };
+    }
+    return {
+      text: `${suggestions.length} matching stop${suggestions.length > 1 ? 's' : ''} found — select one below`,
+      type: 'success'
+    };
   };
 
   const validationNote = getInputValidationNote();
@@ -739,30 +941,35 @@ export const ShelterVisitPlanningSection: React.FC = () => {
               </div>
             )}
 
-            {/* Stop code input form with Error Prevention (Strict 5-digit validation, Clear action, Disabled state) */}
+            {/* Stop code and name search input form with Error Prevention */}
             <form onSubmit={handleSearchRoutes} className="space-y-3">
               <div>
                 <label htmlFor="bus-stop-code-hero-input" className="block text-sm font-bold text-warmgray-800">
-                  Search bus stop or bus service
+                  Search bus stop by name or 5-digit code
                 </label>
               </div>
 
               <div className="flex items-center gap-2 sm:gap-2.5">
-                <div className="relative flex-1">
+                <div ref={searchContainerRef} className="relative flex-1">
                   <input
                     id="bus-stop-code-hero-input"
                     type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    maxLength={5}
                     value={stopCodeInput}
                     onChange={handleInputChange}
-                    placeholder="e.g. 04121"
+                    onFocus={() => {
+                      if (stopCodeInput.trim().length >= 2 && !/^\d+$/.test(stopCodeInput.trim())) {
+                        setShowSuggestions(true);
+                      }
+                    }}
+                    placeholder="e.g. 04121, Pasir Ris, or Anchorvale"
                     aria-describedby="stop-code-instruction-note"
-                    className="w-full h-12 sm:h-14 pl-4 pr-16 rounded-2xl border-2 border-[#D6CBC0] bg-[#FAF8F5] text-base sm:text-lg text-warmgray-900 placeholder:text-warmgray-400 focus:outline-none focus:ring-2 focus:ring-terracotta-500 font-mono tracking-widest shadow-inner"
+                    autoComplete="off"
+                    className={`w-full h-12 sm:h-14 pl-4 pr-16 rounded-2xl border-2 border-[#D6CBC0] bg-[#FAF8F5] text-base sm:text-lg text-warmgray-900 placeholder:text-warmgray-400 focus:outline-none focus:ring-2 focus:ring-terracotta-500 shadow-inner ${
+                      /^\d*$/.test(stopCodeInput) ? 'font-mono tracking-widest' : 'font-sans tracking-normal'
+                    }`}
                   />
 
-                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 z-10">
                     {/* Clear Button */}
                     {stopCodeInput.length > 0 && (
                       <button
@@ -776,8 +983,8 @@ export const ShelterVisitPlanningSection: React.FC = () => {
                       </button>
                     )}
 
-                    {/* Favourite Star Toggle for Active Input */}
-                    {stopCodeInput.length === 5 && (
+                    {/* Favourite Star Toggle for Active Input (strictly 5 digits) */}
+                    {stopCodeInput.length === 5 && /^\d{5}$/.test(stopCodeInput) && (
                       <button
                         type="button"
                         onClick={() => toggleFavorite(stopCodeInput)}
@@ -803,13 +1010,65 @@ export const ShelterVisitPlanningSection: React.FC = () => {
                       </button>
                     )}
                   </div>
+
+                  {/* Suggestions Dropdown for Bus Stop Name Search */}
+                  {showSuggestions && stopCodeInput.trim().length >= 2 && !/^\d+$/.test(stopCodeInput.trim()) && (
+                    <div
+                      id="bus-stop-suggestions-menu"
+                      role="listbox"
+                      aria-label="Bus stop suggestions"
+                      className="absolute left-0 right-0 top-full mt-2 z-40 bg-[#FAF8F5] border-2 border-[#DDD2C6] rounded-2xl shadow-xl overflow-hidden divide-y divide-[#EDE6DF] animate-in fade-in slide-in-from-top-1 duration-150"
+                    >
+                      {suggestionsLoading && suggestions.length === 0 ? (
+                        <div className="p-3.5 text-center text-xs text-warmgray-500 flex items-center justify-center gap-2">
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-terracotta-500" />
+                          <span>Searching matching bus stops...</span>
+                        </div>
+                      ) : suggestions.length === 0 ? (
+                        <div className="p-3.5 text-center text-xs text-warmgray-500 font-medium">
+                          No bus stops matching &ldquo;{suggestionsQuery || stopCodeInput.trim()}&rdquo; found
+                        </div>
+                      ) : (
+                        suggestions.slice(0, 5).map((s) => (
+                          <button
+                            key={s.code}
+                            type="button"
+                            role="option"
+                            aria-selected={false}
+                            onClick={() => handleSelectSuggestion(s)}
+                            className="w-full text-left px-4 py-3 flex items-center justify-between gap-3 hover:bg-warmgray-100/90 active:bg-warmgray-200/70 transition-colors group focus:outline-none focus:bg-warmgray-100 cursor-pointer"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold text-warmgray-900 text-xs sm:text-sm truncate group-hover:text-terracotta-600 transition-colors">
+                                {s.name}
+                              </div>
+                              {s.road && (
+                                <div className="text-[11px] sm:text-xs text-warmgray-500 truncate mt-0.5">
+                                  {s.road}
+                                </div>
+                              )}
+                            </div>
+                            <span className="font-mono text-xs font-semibold px-2.5 py-1 rounded-lg bg-warmgray-200/80 text-warmgray-700 shrink-0 border border-[#E5DDD4]">
+                              {s.code}
+                            </span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Primary Search Button */}
                 <button
                   id="btn-search-shelter-routes"
                   type="submit"
-                  disabled={routesLoading || isRefreshing || stopCodeInput.trim().length !== 5}
+                  disabled={
+                    routesLoading ||
+                    isRefreshing ||
+                    (/^\d*$/.test(stopCodeInput)
+                      ? stopCodeInput.trim().length !== 5
+                      : stopCodeInput.trim().length < 2 && suggestions.length === 0)
+                  }
                   className="h-12 sm:h-14 px-5 sm:px-7 rounded-2xl bg-terracotta-500 hover:bg-terracotta-600 active:bg-terracotta-700 text-white font-bold text-sm sm:text-base transition-colors shadow-sm flex items-center gap-2 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Search className="w-5 h-5" />
@@ -831,9 +1090,11 @@ export const ShelterVisitPlanningSection: React.FC = () => {
                 >
                   {validationNote.text}
                 </p>
-                <span className="font-mono text-warmgray-400 text-[11px]">
-                  {stopCodeInput.length}/5 digits
-                </span>
+                {/^\d*$/.test(stopCodeInput) && (
+                  <span className="font-mono text-warmgray-400 text-[11px]">
+                    {stopCodeInput.length}/5 digits
+                  </span>
+                )}
               </div>
 
               {/* RECOGNITION RATHER THAN RECALL: Navigation for Favourites and Recent Searches */}

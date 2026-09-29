@@ -1,7 +1,30 @@
+import { searchBusStops } from './busStopsData.js';
+
 // In-memory module-scope cache for LTA BusRoutes and BusStops datasets
 let routeIndex = null;
 let busStopIndex = null;
 let loadPromise = null;
+let stopsLoadPromise = null;
+
+export function getLoadedBusStops() {
+  return busStopIndex;
+}
+
+export async function loadBusStopsFromLTA(accountKey) {
+  if (busStopIndex) return busStopIndex;
+  if (!stopsLoadPromise) {
+    stopsLoadPromise = (async () => {
+      try {
+        const loadedStops = await fetchAllBusStops(accountKey);
+        busStopIndex = loadedStops;
+        return busStopIndex;
+      } finally {
+        stopsLoadPromise = null;
+      }
+    })();
+  }
+  return await stopsLoadPromise;
+}
 
 function getSingaporeDayOfWeek() {
   const now = new Date();
@@ -136,11 +159,23 @@ async function getOrLoadAllData(accountKey) {
 export default async function handler(req, res) {
   const accountKey = process.env.LTA_ACCOUNT_KEY;
 
-  // BEFORE any LTA fetch, check that key exists and is non-empty
-  if (!accountKey || accountKey.trim() === '') {
-    return res.status(503).json({
-      error: 'Live bus service information is temporarily unavailable. Please try again in a few moments.'
-    });
+  // 1. Bus stop name search / lookup query
+  const rawSearch = req.query?.search ?? req.query?.q ?? req.query?.name;
+  if (typeof rawSearch === 'string') {
+    const cleanQuery = rawSearch.trim();
+    if (cleanQuery.length < 2) {
+      return res.status(200).json({ stops: [] });
+    }
+    let stopsMap = busStopIndex;
+    if (!stopsMap && accountKey && accountKey.trim() !== '') {
+      try {
+        stopsMap = await loadBusStopsFromLTA(accountKey);
+      } catch {
+        stopsMap = null;
+      }
+    }
+    const results = searchBusStops(cleanQuery, stopsMap);
+    return res.status(200).json({ stops: results });
   }
 
   // Treat every bus stop code strictly as a string
@@ -154,6 +189,28 @@ export default async function handler(req, res) {
   }
 
   const destinationStop = '77009'; // Fixed destination: Pasir Ris Interchange
+
+  // If origin is already the destination stop (77009 Pasir Ris Interchange), return without calculating loop journeys
+  if (fromStop === destinationStop) {
+    return res.status(200).json({
+      from: fromStop,
+      fromDescription: 'Pasir Ris Interchange',
+      fromRoadName: 'Pasir Ris Dr 3',
+      destination: destinationStop,
+      destinationDescription: 'Pasir Ris Interchange',
+      type: 'already_at_destination',
+      directServices: [],
+      oneChangeServices: [],
+      message: "You are already at the shelter's stop (Pasir Ris Interchange). No bus journey is needed."
+    });
+  }
+
+  // BEFORE any LTA fetch for routes, check that key exists and is non-empty
+  if (!accountKey || accountKey.trim() === '') {
+    return res.status(503).json({
+      error: 'Live bus service information is temporarily unavailable. Please try again in a few moments.'
+    });
+  }
 
   let routes;
   let stops;

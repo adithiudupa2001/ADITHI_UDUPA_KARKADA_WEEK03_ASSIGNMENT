@@ -5,6 +5,7 @@ import weatherHandler from "./api/weather.js";
 import busHandler from "./api/bus.js";
 import healthHandler from "./api/health.js";
 import routesToShelterHandler from "./api/routes-to-shelter.js";
+import busStopsHandler from "./api/bus-stops.js";
 
 async function startServer() {
   const app = express();
@@ -15,6 +16,7 @@ async function startServer() {
   app.get("/api/bus", busHandler);
   app.get("/api/health", healthHandler);
   app.get("/api/routes-to-shelter", routesToShelterHandler);
+  app.get("/api/bus-stops", busStopsHandler);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
