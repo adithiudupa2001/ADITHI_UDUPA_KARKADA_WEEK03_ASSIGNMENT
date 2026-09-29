@@ -7,11 +7,9 @@ import {
   Compass,
   Umbrella,
   Sun,
-  Navigation,
   Clock,
   CheckCircle2,
   Star,
-  MapPin,
   X,
   RotateCcw,
   ArrowRight,
@@ -150,10 +148,6 @@ export const ShelterVisitPlanningSection: React.FC = () => {
 
   // Category view for Quick Stops / Favourites / Recent
   const [stopsCategory, setStopsCategory] = useState<'quick' | 'favorites' | 'recent'>('quick');
-
-  // Geolocation & Quick Stops State
-  const [locationStatus, setLocationStatus] = useState<'idle' | 'locating' | 'success' | 'error'>('idle');
-  const [locationMessage, setLocationMessage] = useState<string | null>(null);
 
   // Favourites state (stored in localStorage)
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -429,55 +423,6 @@ export const ShelterVisitPlanningSection: React.FC = () => {
     if (routesLoading || isRefreshing) return;
     setStopCodeInput(code);
     performSearch(code);
-  };
-
-  // Nearby Stops Geolocation
-  const handleLocateNearbyStops = () => {
-    if (locationStatus === 'locating') return;
-
-    if (!navigator.geolocation) {
-      setLocationStatus('error');
-      setLocationMessage('Location access is not supported by your browser. Please enter a 5-digit stop code below.');
-      return;
-    }
-
-    setLocationStatus('locating');
-    setLocationMessage('Finding nearby bus stops...');
-
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        let nearest = POPULAR_QUICK_STOPS[0];
-        let minDistanceKm = Infinity;
-
-        for (const stop of POPULAR_QUICK_STOPS) {
-          const dLat = (stop.lat - latitude) * 111;
-          const dLng = (stop.lng - longitude) * 111 * Math.cos((latitude * Math.PI) / 180);
-          const dist = Math.sqrt(dLat * dLat + dLng * dLng);
-          if (dist < minDistanceKm) {
-            minDistanceKm = dist;
-            nearest = stop;
-          }
-        }
-
-        const distanceText = minDistanceKm < 1 ? `${Math.round(minDistanceKm * 1000)}m` : `${minDistanceKm.toFixed(1)}km`;
-        setLocationStatus('success');
-        setLocationMessage(`Located nearest hub: ${nearest.name} (${nearest.code}) • ~${distanceText} away`);
-        setStopCodeInput(nearest.code);
-        performSearch(nearest.code);
-      },
-      (err) => {
-        setLocationStatus('error');
-        if (err.code === 1) {
-          setLocationMessage('Location permission denied. Enter a 5-digit stop code below or choose from quick stops.');
-        } else if (err.code === 2) {
-          setLocationMessage('Location unavailable. Check GPS connection or select a quick stop below.');
-        } else {
-          setLocationMessage('Location request timed out. Select a quick stop below or enter a 5-digit code.');
-        }
-      },
-      { timeout: 8000, enableHighAccuracy: true }
-    );
   };
 
   // Toggle Favourites with Duplicate Prevention & Undo Capability
@@ -796,42 +741,6 @@ export const ShelterVisitPlanningSection: React.FC = () => {
               )}
             </div>
 
-            {/* Location Status Feedback Banner */}
-            {locationStatus !== 'idle' && (
-              <div
-                className={`p-3 rounded-2xl text-xs sm:text-sm flex items-start justify-between gap-2 transition-all ${
-                  locationStatus === 'locating'
-                    ? 'bg-amber-50 border border-amber-200 text-amber-900'
-                    : locationStatus === 'success'
-                    ? 'bg-emerald-50 border border-emerald-200 text-emerald-900'
-                    : 'bg-rose-50 border border-rose-200 text-rose-900'
-                }`}
-              >
-                <div className="flex items-center gap-2 flex-1">
-                  {locationStatus === 'locating' && (
-                    <RefreshCw className="w-4 h-4 animate-spin text-amber-600 shrink-0" />
-                  )}
-                  {locationStatus === 'success' && (
-                    <MapPin className="w-4 h-4 text-emerald-600 shrink-0" />
-                  )}
-                  {locationStatus === 'error' && (
-                    <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                  )}
-                  <span className="font-medium leading-tight">{locationMessage}</span>
-                </div>
-                {locationStatus !== 'locating' && (
-                  <button
-                    type="button"
-                    onClick={() => setLocationStatus('idle')}
-                    className="text-warmgray-400 hover:text-warmgray-700 text-xs px-1 font-bold shrink-0"
-                    aria-label="Dismiss location message"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            )}
-
             {/* Undo Removal Notification (Error Prevention: Allows quick recovery without modal dialogs) */}
             {undoRemoval && (
               <div className="p-3 rounded-2xl bg-warmgray-900 text-white text-xs sm:text-sm flex items-center justify-between gap-3 shadow-md animate-in fade-in slide-in-from-top-1 duration-200">
@@ -851,22 +760,10 @@ export const ShelterVisitPlanningSection: React.FC = () => {
 
             {/* Stop code input form with Error Prevention (Strict 5-digit validation, Clear action, Disabled state) */}
             <form onSubmit={handleSearchRoutes} className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div>
                 <label htmlFor="bus-stop-code-hero-input" className="block text-sm font-bold text-warmgray-800">
                   Search bus stop or bus service
                 </label>
-
-                {/* Location Detection Button */}
-                <button
-                  type="button"
-                  onClick={handleLocateNearbyStops}
-                  disabled={locationStatus === 'locating'}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-terracotta-600 hover:text-terracotta-700 active:text-terracotta-800 transition-colors focus:outline-none focus:ring-1 focus:ring-terracotta-500 rounded px-1.5 py-0.5 disabled:opacity-50"
-                  title="Find nearest bus stop to my current location"
-                >
-                  <Navigation className={`w-3.5 h-3.5 ${locationStatus === 'locating' ? 'animate-spin' : ''}`} />
-                  <span>{locationStatus === 'locating' ? 'Finding nearby bus stops...' : 'Nearby stops'}</span>
-                </button>
               </div>
 
               <div className="flex items-center gap-2 sm:gap-2.5">
