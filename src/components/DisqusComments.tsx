@@ -44,7 +44,6 @@ export default function DisqusComments() {
       s.src = `https://${DISQUS_SHORTNAME}.disqus.com/embed.js`;
       s.setAttribute("data-timestamp", String(Date.now()));
       s.async = true;
-      s.crossOrigin = "anonymous";
       s.onerror = (e) => {
         console.warn("Disqus script failed to load:", e);
       };
