@@ -73,15 +73,6 @@ interface WeatherData {
   valid_period: string;
 }
 
-interface KnownStop {
-  code: string;
-  name: string;
-  road?: string;
-  hint?: string;
-  lat: number;
-  lng: number;
-}
-
 interface SearchErrorDetail {
   kind: 'invalid_stop' | 'short_code' | 'no_route' | 'api_unavailable';
   searchedCode: string;
@@ -92,16 +83,6 @@ interface SearchErrorDetail {
 const DESTINATION_STOP_CODE = '77009';
 const DESTINATION_STOP_NAME = 'Pasir Ris Interchange';
 const DESTINATION_STOP_ROAD = 'Pasir Ris Dr 3';
-
-// Curated Singapore Transit Hubs for instant recognition & nearby geolocation
-const POPULAR_QUICK_STOPS: KnownStop[] = [
-  { code: '77009', name: 'Pasir Ris Int', road: 'Pasir Ris Dr 3', hint: 'Shelter Hub', lat: 1.3801, lng: 103.9493 },
-  { code: '77031', name: 'Opp Pasir Ris Stn', road: 'Pasir Ris Ctrl', hint: 'MRT Exit B', lat: 1.3734, lng: 103.9482 },
-  { code: '75009', name: 'Tampines Int', road: 'Tampines Ctrl 1', hint: 'Direct Hub', lat: 1.3533, lng: 103.9452 },
-  { code: '84009', name: 'Bedok Int', road: 'Bedok North Ave 1', hint: 'East Coast', lat: 1.3243, lng: 103.9304 },
-  { code: '98011', name: 'Loyang Pt', road: 'Loyang Ave', hint: 'Loyang Hub', lat: 1.3705, lng: 103.9658 },
-  { code: '65009', name: 'Punggol Temp Int', road: 'Punggol Pl', hint: 'Northeast', lat: 1.4042, lng: 103.9022 }
-];
 
 // Offline fallback dictionary of known Singapore transit stops for instant recognition
 const KNOWN_STOP_NAMES: Record<string, { name: string; road?: string }> = {
@@ -146,8 +127,8 @@ export const ShelterVisitPlanningSection: React.FC = () => {
   // Heuristic #8: Aesthetic & Minimalist Design - Show only 1 route initially with expand/collapse
   const [showAllRoutes, setShowAllRoutes] = useState<boolean>(false);
 
-  // Category view for Quick Stops / Favourites / Recent
-  const [stopsCategory, setStopsCategory] = useState<'quick' | 'favorites' | 'recent'>('quick');
+  // Category view for Favourites / Recent
+  const [stopsCategory, setStopsCategory] = useState<'favorites' | 'recent'>('favorites');
 
   // Favourites state (stored in localStorage)
   const [favorites, setFavorites] = useState<string[]>(() => {
@@ -855,148 +836,117 @@ export const ShelterVisitPlanningSection: React.FC = () => {
                 </span>
               </div>
 
-              {/* RECOGNITION RATHER THAN RECALL: Segmented Navigation for Quick Stops, Favourites, and Recent */}
-              <div className="pt-2 space-y-2">
-                <div className="flex items-center gap-1 border-b border-[#EDE6DF] pb-1.5 text-xs font-semibold text-warmgray-500">
-                  <button
-                    type="button"
-                    onClick={() => setStopsCategory('quick')}
-                    className={`px-2.5 py-1 rounded-lg transition-colors ${
-                      stopsCategory === 'quick'
-                        ? 'bg-warmgray-200/80 text-warmgray-900 font-bold'
-                        : 'text-warmgray-500 hover:text-warmgray-800'
-                    }`}
-                  >
-                    Nearby &amp; Quick Stops
-                  </button>
+              {/* RECOGNITION RATHER THAN RECALL: Navigation for Favourites and Recent Searches */}
+              {(favorites.length > 0 || recentStops.length > 0) && (() => {
+                const effectiveCategory = favorites.length > 0 && stopsCategory === 'favorites'
+                  ? 'favorites'
+                  : recentStops.length > 0
+                  ? (stopsCategory === 'recent' || favorites.length === 0 ? 'recent' : 'favorites')
+                  : 'favorites';
 
-                  <button
-                    type="button"
-                    onClick={() => setStopsCategory('favorites')}
-                    className={`px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 ${
-                      stopsCategory === 'favorites'
-                        ? 'bg-amber-100/90 text-amber-900 font-bold'
-                        : 'text-warmgray-500 hover:text-warmgray-800'
-                    }`}
-                  >
-                    <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
-                    <span>Favourites ({favorites.length})</span>
-                  </button>
-
-                  {recentStops.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setStopsCategory('recent')}
-                      className={`px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 ${
-                        stopsCategory === 'recent'
-                          ? 'bg-warmgray-200/80 text-warmgray-900 font-bold'
-                          : 'text-warmgray-500 hover:text-warmgray-800'
-                      }`}
-                    >
-                      <Clock className="w-3 h-3 text-warmgray-500" />
-                      <span>Recent ({recentStops.length})</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* Category 1: Quick Transit Interchanges */}
-                {stopsCategory === 'quick' && (
-                  <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                    {POPULAR_QUICK_STOPS.map((qs) => {
-                      const isSelected = stopCodeInput === qs.code || routeResult?.from === qs.code;
-                      return (
+                return (
+                  <div className="pt-2 space-y-2">
+                    <div className="flex items-center gap-1 border-b border-[#EDE6DF] pb-1.5 text-xs font-semibold text-warmgray-500">
+                      {favorites.length > 0 && (
                         <button
-                          key={qs.code}
                           type="button"
-                          onClick={() => handleSelectQuickStop(qs.code)}
-                          disabled={routesLoading || isRefreshing}
-                          className={`px-3 py-1.5 rounded-xl font-medium transition-all border flex items-center gap-1.5 disabled:opacity-50 ${
-                            isSelected
-                              ? 'bg-terracotta-100 border-terracotta-500 text-terracotta-900 font-bold ring-2 ring-terracotta-400/30'
-                              : 'bg-[#FAF8F5] border-[#E5DDD4] text-warmgray-700 hover:bg-warmgray-100 hover:text-warmgray-900'
+                          onClick={() => setStopsCategory('favorites')}
+                          className={`px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 ${
+                            effectiveCategory === 'favorites'
+                              ? 'bg-amber-100/90 text-amber-900 font-bold'
+                              : 'text-warmgray-500 hover:text-warmgray-800'
                           }`}
                         >
-                          <span className="font-bold">{qs.name}</span>
-                          <span className="font-mono text-[11px] opacity-70">({qs.code})</span>
+                          <Star className="w-3 h-3 fill-amber-400 text-amber-500" />
+                          <span>Favourites ({favorites.length})</span>
                         </button>
-                      );
-                    })}
-                  </div>
-                )}
+                      )}
 
-                {/* Category 2: Favourites */}
-                {stopsCategory === 'favorites' && (
-                  <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                    {favorites.length === 0 ? (
-                      <p className="text-xs text-warmgray-400 italic py-1">
-                        No saved favourite stops yet. Tap the star icon beside any stop code to save it here.
-                      </p>
-                    ) : (
-                      favorites.map((favCode) => {
-                        const display = getStopDisplay(favCode);
-                        const isSelected = stopCodeInput === favCode || routeResult?.from === favCode;
-                        return (
-                          <div
-                            key={favCode}
-                            className={`inline-flex items-center rounded-xl border transition-all ${
-                              isSelected
-                                ? 'bg-amber-50 border-amber-400 text-amber-950 font-bold ring-2 ring-amber-300/40'
-                                : 'bg-[#FAF8F5] border-[#E5DDD4] text-warmgray-800'
-                            }`}
-                          >
+                      {recentStops.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setStopsCategory('recent')}
+                          className={`px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1 ${
+                            effectiveCategory === 'recent'
+                              ? 'bg-warmgray-200/80 text-warmgray-900 font-bold'
+                              : 'text-warmgray-500 hover:text-warmgray-800'
+                          }`}
+                        >
+                          <Clock className="w-3 h-3 text-warmgray-500" />
+                          <span>Recent ({recentStops.length})</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Favourites */}
+                    {effectiveCategory === 'favorites' && favorites.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                        {favorites.map((favCode) => {
+                          const display = getStopDisplay(favCode);
+                          const isSelected = stopCodeInput === favCode || routeResult?.from === favCode;
+                          return (
+                            <div
+                              key={favCode}
+                              className={`inline-flex items-center rounded-xl border transition-all ${
+                                isSelected
+                                  ? 'bg-amber-50 border-amber-400 text-amber-950 font-bold ring-2 ring-amber-300/40'
+                                  : 'bg-[#FAF8F5] border-[#E5DDD4] text-warmgray-800'
+                              }`}
+                            >
+                              <button
+                                type="button"
+                                onClick={() => handleSelectQuickStop(favCode)}
+                                disabled={routesLoading || isRefreshing}
+                                className="px-3 py-1.5 flex items-center gap-1.5 text-left disabled:opacity-50"
+                              >
+                                <Star className="w-3 h-3 fill-amber-400 text-amber-500 shrink-0" />
+                                <span className="font-bold">{display.name}</span>
+                                <span className="font-mono text-[11px] opacity-70">({favCode})</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => toggleFavorite(favCode)}
+                                className="px-2 py-1.5 text-warmgray-400 hover:text-rose-600 transition-colors border-l border-[#E5DDD4]"
+                                title={`Remove ${display.name} from favourites`}
+                                aria-label={`Remove ${display.name} from favourites`}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Recent Searches */}
+                    {effectiveCategory === 'recent' && recentStops.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                        {recentStops.map((recCode) => {
+                          const display = getStopDisplay(recCode);
+                          const isSelected = stopCodeInput === recCode || routeResult?.from === recCode;
+                          return (
                             <button
+                              key={recCode}
                               type="button"
-                              onClick={() => handleSelectQuickStop(favCode)}
+                              onClick={() => handleSelectQuickStop(recCode)}
                               disabled={routesLoading || isRefreshing}
-                              className="px-3 py-1.5 flex items-center gap-1.5 text-left disabled:opacity-50"
+                              className={`px-3 py-1.5 rounded-xl font-medium transition-all border flex items-center gap-1.5 disabled:opacity-50 ${
+                                isSelected
+                                  ? 'bg-warmgray-200 border-warmgray-400 text-warmgray-900 font-bold ring-2 ring-warmgray-300/40'
+                                  : 'bg-[#FAF8F5] border-[#E5DDD4] text-warmgray-700 hover:bg-warmgray-100 hover:text-warmgray-900'
+                              }`}
                             >
-                              <Star className="w-3 h-3 fill-amber-400 text-amber-500 shrink-0" />
+                              <Clock className="w-3 h-3 text-warmgray-400 shrink-0" />
                               <span className="font-bold">{display.name}</span>
-                              <span className="font-mono text-[11px] opacity-70">({favCode})</span>
+                              <span className="font-mono text-[11px] opacity-70">({recCode})</span>
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => toggleFavorite(favCode)}
-                              className="px-2 py-1.5 text-warmgray-400 hover:text-rose-600 transition-colors border-l border-[#E5DDD4]"
-                              title={`Remove ${display.name} from favourites`}
-                              aria-label={`Remove ${display.name} from favourites`}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        );
-                      })
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
-                )}
-
-                {/* Category 3: Recent Searches */}
-                {stopsCategory === 'recent' && (
-                  <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                    {recentStops.map((recCode) => {
-                      const display = getStopDisplay(recCode);
-                      const isSelected = stopCodeInput === recCode || routeResult?.from === recCode;
-                      return (
-                        <button
-                          key={recCode}
-                          type="button"
-                          onClick={() => handleSelectQuickStop(recCode)}
-                          disabled={routesLoading || isRefreshing}
-                          className={`px-3 py-1.5 rounded-xl font-medium transition-all border flex items-center gap-1.5 disabled:opacity-50 ${
-                            isSelected
-                              ? 'bg-warmgray-200 border-warmgray-400 text-warmgray-900 font-bold ring-2 ring-warmgray-300/40'
-                              : 'bg-[#FAF8F5] border-[#E5DDD4] text-warmgray-700 hover:bg-warmgray-100 hover:text-warmgray-900'
-                          }`}
-                        >
-                          <Clock className="w-3 h-3 text-warmgray-400 shrink-0" />
-                          <span className="font-bold">{display.name}</span>
-                          <span className="font-mono text-[11px] opacity-70">({recCode})</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                );
+              })()}
             </form>
 
             {/* SKELETON LOADING STATE: Nielsen Heuristic #1 Visibility of System Status */}
