@@ -71,6 +71,15 @@ interface WeatherData {
   area: string;
   forecast: string;
   valid_period: string;
+  valid_period_start?: string | null;
+  valid_period_end?: string | null;
+  issued_at?: string | null;
+  fetched_at?: string | null;
+  issued_time?: string | null;
+  fetched_time?: string | null;
+  timestamp?: string | null;
+  update_timestamp?: string | null;
+  is_expired?: boolean;
 }
 
 interface SearchErrorDetail {
@@ -204,6 +213,8 @@ export const ShelterVisitPlanningSection: React.FC = () => {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [weatherLoading, setWeatherLoading] = useState<boolean>(true);
   const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [weatherLastUpdated, setWeatherLastUpdated] = useState<Date | null>(null);
+  const [weatherUpdatedTimeText, setWeatherUpdatedTimeText] = useState<string>('');
 
   // Panel B: Route Finder State
   const [stopCodeInput, setStopCodeInput] = useState<string>('');
@@ -286,13 +297,15 @@ export const ShelterVisitPlanningSection: React.FC = () => {
 
   // Periodic ticker to keep timestamp relative representation fresh
   useEffect(() => {
-    if (!lastUpdated) return;
-    setUpdatedTimeText(calculateRelativeTime(lastUpdated));
+    if (!lastUpdated && !weatherLastUpdated) return;
+    if (lastUpdated) setUpdatedTimeText(calculateRelativeTime(lastUpdated));
+    if (weatherLastUpdated) setWeatherUpdatedTimeText(calculateRelativeTime(weatherLastUpdated));
     const interval = setInterval(() => {
-      setUpdatedTimeText(calculateRelativeTime(lastUpdated));
+      if (lastUpdated) setUpdatedTimeText(calculateRelativeTime(lastUpdated));
+      if (weatherLastUpdated) setWeatherUpdatedTimeText(calculateRelativeTime(weatherLastUpdated));
     }, 15000);
     return () => clearInterval(interval);
-  }, [lastUpdated]);
+  }, [lastUpdated, weatherLastUpdated]);
 
   // Fetch Weather once and poll every 5 minutes (data.gov.sg rate limit friendly)
   const fetchWeather = useCallback(async () => {
@@ -305,6 +318,12 @@ export const ShelterVisitPlanningSection: React.FC = () => {
       }
       const data: WeatherData = await res.json();
       setWeather(data);
+
+      const issuedDateStr = data.issued_at || data.issued_time || data.update_timestamp || data.timestamp || data.fetched_at;
+      const updateDate = issuedDateStr ? new Date(issuedDateStr) : new Date();
+      const validDate = isNaN(updateDate.getTime()) ? new Date() : updateDate;
+      setWeatherLastUpdated(validDate);
+      setWeatherUpdatedTimeText(calculateRelativeTime(validDate));
     } catch {
       setWeatherError('Weather forecast is temporarily unavailable. Please check back shortly.');
     } finally {
@@ -661,6 +680,44 @@ export const ShelterVisitPlanningSection: React.FC = () => {
     return `Forecast for ${withPeriod}`;
   };
 
+  // Determine if the weather forecast validity period has passed
+  const checkIsWeatherExpired = (w: WeatherData | null): boolean => {
+    if (!w) return false;
+    if (w.is_expired === true) return true;
+    if (w.valid_period_end) {
+      const endTime = new Date(w.valid_period_end).getTime();
+      if (!isNaN(endTime)) {
+        return Date.now() > endTime;
+      }
+    }
+    if (w.valid_period) {
+      const match = w.valid_period.match(/to\s+(\d{1,2})(?:[:.](\d{2}))?\s*(am|pm)/i);
+      if (match) {
+        let hours = parseInt(match[1], 10);
+        const minutes = match[2] ? parseInt(match[2], 10) : 0;
+        const meridian = match[3].toLowerCase();
+        if (meridian === 'pm' && hours < 12) hours += 12;
+        if (meridian === 'am' && hours === 12) hours = 0;
+        const now = new Date();
+        const sgTimeString = now.toLocaleTimeString('en-US', {
+          timeZone: 'Asia/Singapore',
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        const [currH, currM] = sgTimeString.split(':').map(Number);
+        const currMins = currH * 60 + currM;
+        const endMins = hours * 60 + minutes;
+        if (currMins > endMins && currMins - endMins < 12 * 60) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  const isWeatherExpired = checkIsWeatherExpired(weather);
+
   // Formatting live bus arrivals
   const formatRouteNextBuses = (nextBuses?: number[]) => {
     if (!nextBuses || nextBuses.length === 0) {
@@ -798,24 +855,41 @@ export const ShelterVisitPlanningSection: React.FC = () => {
           className="order-2 lg:order-1 bg-white border-2 border-[#DDD2C6] rounded-3xl p-6 sm:p-8 lg:p-10 shadow-md flex flex-col justify-between space-y-6"
         >
           <div className="space-y-5">
-            {/* Header & Live Data Badge */}
-            <div className="flex items-center justify-between pb-3 border-b border-[#F2EDE8]">
+            {/* Header & Live Data / Out of Date Badge */}
+            <div className="flex items-center justify-between pb-3 border-b border-[#F2EDE8] gap-2">
               <div className="flex items-center gap-2">
                 <CloudSun className="w-6 h-6 text-amber-600 shrink-0" />
                 <span className="text-xs font-bold uppercase tracking-wider text-warmgray-500">
                   Pasir Ris Weather
                 </span>
               </div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                LIVE DATA
-              </span>
+              <div className="flex items-center gap-2">
+                {isWeatherExpired ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-300">
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                    OUT OF DATE
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                    LIVE DATA
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Panel Heading */}
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-warmgray-900 tracking-tight leading-snug">
-              How&apos;s the weather at Pasir Ris?
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <h3 className="text-2xl sm:text-3xl font-extrabold text-warmgray-900 tracking-tight leading-snug">
+                How&apos;s the weather at Pasir Ris?
+              </h3>
+              {weatherLastUpdated && (
+                <span className="inline-flex items-center gap-1 text-xs text-warmgray-500 font-medium shrink-0">
+                  <Clock className="w-3.5 h-3.5 text-warmgray-400" />
+                  <span>{weatherUpdatedTimeText}</span>
+                </span>
+              )}
+            </div>
 
             {/* Weather Content Area */}
             {weatherLoading && !weather && (
@@ -837,22 +911,53 @@ export const ShelterVisitPlanningSection: React.FC = () => {
 
             {weather && (
               <div className="space-y-4">
+                {/* Out of date notice when validity period has passed */}
+                {isWeatherExpired && (
+                  <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-900 text-xs sm:text-sm flex items-start gap-2.5">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+                    <div className="space-y-0.5">
+                      <p className="font-bold">Forecast reading is out of date</p>
+                      <p className="text-xs text-amber-800">
+                        The validity period ({weather.valid_period}) has ended. Awaiting next live update.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="pt-2">
-                  <div className="text-3xl sm:text-4xl lg:text-5xl font-black text-warmgray-900 tracking-tight leading-none">
-                    {weather.forecast}
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <div className={`text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-none ${
+                      isWeatherExpired ? 'text-warmgray-700' : 'text-warmgray-900'
+                    }`}>
+                      {weather.forecast}
+                    </div>
+                    {isWeatherExpired && (
+                      <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                        Out of date
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                <p className="text-sm sm:text-base text-warmgray-600 font-medium">
-                  {formatValidPeriodSentence(weather.valid_period)}
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm sm:text-base text-warmgray-600 font-medium">
+                    {formatValidPeriodSentence(weather.valid_period)}
+                  </p>
+                  {isWeatherExpired && (
+                    <span className="text-xs font-bold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded border border-amber-200">
+                      Validity period ended
+                    </span>
+                  )}
+                </div>
 
                 {(() => {
                   const advice = getForecastAdvice(weather.forecast);
                   return (
                     <div
                       className={`p-4 rounded-2xl border flex items-center gap-3 ${
-                        advice.isRain
+                        isWeatherExpired
+                          ? 'bg-warmgray-50 border-warmgray-200 text-warmgray-600 opacity-90'
+                          : advice.isRain
                           ? 'bg-blue-50/80 border-blue-200 text-blue-950'
                           : 'bg-amber-50/80 border-amber-200 text-amber-950'
                       }`}
@@ -874,7 +979,7 @@ export const ShelterVisitPlanningSection: React.FC = () => {
 
           <div className="pt-4 border-t border-[#F2EDE8] text-xs text-warmgray-400 font-medium flex items-center justify-between">
             <span>Source: data.gov.sg 2-hour forecast</span>
-            <span>Station: Pasir Ris</span>
+            <span>{isWeatherExpired ? 'Status: Out of date' : 'Station: Pasir Ris'}</span>
           </div>
         </div>
 

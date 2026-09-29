@@ -15,11 +15,26 @@ export default async function handler(req, res) {
     const pasirRis = forecasts.find((f) => f.area === 'Pasir Ris');
     const forecastText = pasirRis ? pasirRis.forecast : 'No forecast available';
 
+    const issuedAt = item?.update_timestamp || item?.timestamp || new Date().toISOString();
+    const fetchedAt = new Date().toISOString();
+    const validPeriodStart = item?.valid_period?.start || null;
+    const validPeriodEnd = item?.valid_period?.end || null;
+    const isExpired = validPeriodEnd ? (Date.now() > new Date(validPeriodEnd).getTime()) : false;
+
     res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
     return res.status(200).json({
       area: 'Pasir Ris',
       forecast: forecastText,
-      valid_period: validPeriod
+      valid_period: validPeriod,
+      valid_period_start: validPeriodStart,
+      valid_period_end: validPeriodEnd,
+      issued_at: issuedAt,
+      fetched_at: fetchedAt,
+      issued_time: issuedAt,
+      fetched_time: fetchedAt,
+      timestamp: item?.timestamp || null,
+      update_timestamp: item?.update_timestamp || null,
+      is_expired: isExpired
     });
   } catch (err) {
     return res.status(500).json({
